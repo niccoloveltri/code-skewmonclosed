@@ -31,19 +31,36 @@ pattern ─ = nothing
 Cxt : Set
 Cxt = List Fma
 
+-- Iterated ⊗
+_⊗⋆_ : Fma → Cxt → Fma
+A ⊗⋆ [] = A
+A ⊗⋆ (B ∷ Γ) = (A ⊗ B) ⊗⋆ Γ
+
 -- Iterated ⊸
 _⊸⋆_ : Cxt → Fma → Fma
 [] ⊸⋆ C = C
 (A ∷ Γ) ⊸⋆ C = A ⊸ (Γ ⊸⋆ C)
 
+infix 21 _⊗⋆_
 infix 21 _⊸⋆_
+
+++⊸⋆ : (Γ Γ' : Cxt) (B : Fma)
+  → (Γ ++ Γ') ⊸⋆ B ≡ Γ ⊸⋆ (Γ' ⊸⋆ B)
+++⊸⋆ [] Γ' B = refl
+++⊸⋆ (x ∷ Γ) Γ' B = cong (x ⊸_) (++⊸⋆ Γ Γ' B)
 
 snoc⊸⋆ : (Γ : Cxt) (A B : Fma)
   → Γ ⊸⋆ A ⊸ B ≡ (Γ ∷ʳ A) ⊸⋆ B
 snoc⊸⋆ [] A B = refl
 snoc⊸⋆ (A' ∷ Γ) A B rewrite snoc⊸⋆ Γ A B = refl
 
-{-# REWRITE snoc⊸⋆ #-}
+snoc⊗⋆ : (Γ : Cxt) (A B : Fma)
+  → (A ⊗⋆ (Γ ∷ʳ B)) ≡ (A ⊗⋆ Γ) ⊗ B
+snoc⊗⋆ [] = λ A B → refl
+snoc⊗⋆ (x ∷ Γ) = λ A → snoc⊗⋆ Γ (A ⊗ x)
+
+{-# REWRITE ++⊸⋆ #-}
+{-# REWRITE snoc⊗⋆ #-}
 
 -- Predicates on formulae checking whether:
 
@@ -78,6 +95,11 @@ isPos : Fma → Set
 isPos (A ⊸ B) = ⊥
 isPos _ = ⊤
 
+isPPos : Fma → Set
+isPPos (A ⊸ B) = ⊥
+isPPos (` X) = ⊥
+isPPos _ = ⊤
+
 
 
 -- Predicate on stoups checking whether the stoup is irreducible,
@@ -85,6 +107,10 @@ isPos _ = ⊤
 isIrr : Stp → Set
 isIrr ─ = ⊤
 isIrr (just A) = isNeg A
+
+isPosS : Stp → Set
+isPosS ─ = ⊤
+isPosS (just A) = isPos A
 
 isIrr⊸ : Stp → Set
 isIrr⊸ ─ = ⊤
@@ -100,6 +126,9 @@ Irr = Σ Stp λ S → isIrr S
 
 Irr⊸ : Set
 Irr⊸ = Σ Stp λ S → isIrr⊸ S
+
+PosS : Set
+PosS = Σ Stp λ S → isPosS S
 
 IrrAt : Set
 IrrAt = Σ Stp λ S → isIrrAt S
@@ -122,6 +151,9 @@ irr⊸ (S , p) = S , irris⊸ S p
 Pos : Set
 Pos = Σ Fma λ A → isPos A
 
+PPos : Set
+PPos = Σ Fma λ A → isPPos A
+
 -- The type of negative formulae
 Neg : Set
 Neg = Σ Fma λ A → isNeg A
@@ -130,8 +162,21 @@ Neg = Σ Fma λ A → isNeg A
 irr : Irr → Stp
 irr (S , s) = S
 
+posS : PosS → Stp
+posS (S , s) = S
+
+ppos2pos : ∀ A → isPPos A → isPos A
+ppos2pos I a = tt
+ppos2pos (A ⊗ A₁) a = tt
+
 pos : Pos → Fma
 pos (A , a) = A
+
+ppos : PPos → Fma
+ppos (A , a) = A
+
+ppos2 : PPos → Pos
+ppos2 (A , a) = A , ppos2pos A a
 
 neg : Neg → Fma
 neg (A , a) = A

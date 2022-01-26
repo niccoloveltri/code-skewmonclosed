@@ -30,6 +30,10 @@ tcxt : (x : Tag) → TCxt x → Cxt
 tcxt ∘ Ω = []
 tcxt • Ω = Ω
 
+T[] : (x : Tag) → TCxt x
+T[] ∘ = tt
+T[] • = []
+
 {- ====================================================== -}
 
 -- Inference rules
@@ -94,27 +98,17 @@ data [_]_∣_؛_⊢p_ where
      ----------------------------------
              [ • ] (─ , _) ∣ [] ؛ A ∷ Ω ⊢p C 
 
-  f2p : {x : Tag} {S : IrrAt} {Γ : Cxt} {Ω : TCxt x} {C : Pos} 
-        (f : [ ∘ ] irrAt S ∣ Γ ++ tcxt x Ω ؛ _  ⊢f C) → 
+  f2p : {x : Tag} {S : Irr} {Γ : Cxt} {Ω : TCxt x} {C : Pos} 
+        (f : [ x ] S ∣ Γ ؛ Ω  ⊢f C) → 
       ------------------------------------
-                 [ x ] irrAt S ∣ Γ ؛ Ω ⊢p C
-
-  f2p⊸ : {Γ : Cxt} {A B : Fma} {C : Pos} 
-         (f : [ ∘ ] (just (A ⊸ B) , _) ∣ Γ ؛ _ ⊢f C) → 
-      --------------------------------------------------
-               [ ∘ ]  (just (A ⊸ B) , _) ∣ Γ ؛ _ ⊢p C
-
-  f2p⊸• : {Γ Ω : Cxt} {A B : Fma} {C : Pos} 
-         (f : [ • ] (just (A ⊸ B) , _) ∣ Γ ؛ Ω ⊢f C) → 
-      --------------------------------------------------
-               [ • ]  (just (A ⊸ B) , _) ∣ Γ ؛ Ω ⊢p C
+                 [ x ] S ∣ Γ ؛ Ω ⊢p C
 
 data [_]_∣_؛_⊢f_ where
 
-  ax : {X : At} →
-       [ ∘ ] (just (` X) , _) ∣ [] ؛ _ ⊢f (` X , _)
+  ax : {x : Tag} {X : At} →
+       [ x ] (just (` X) , _) ∣ [] ؛ T[] x ⊢f (` X , _)
 
-  Ir : [ ∘ ] (─ , _) ∣ [] ؛ _ ⊢f (I , _)
+  Ir : {x : Tag} → [ x ] (─ , _) ∣ [] ؛ T[] x ⊢f (I , _)
 
   ⊸l : {Γ Δ : Cxt} {A B : Fma} {C : Pos}
         (f : [ ∘ ] ─ ∣ Γ ؛ _ ⊢ri A)
@@ -134,11 +128,11 @@ data [_]_∣_؛_⊢f_ where
      ---------------------------------------------
             [ x ] S ∣ Γ ++ Δ ؛ Ω ⊢f (A ⊗ B , _)
 
-  ⊗r2 : {Γ Δ Ω : Cxt} {A B A' B' D : Fma} 
-        (f : [ • ] just (A' ⊸ B') ∣ Γ ++ D ∷ Δ ؛ [] ⊢ri A)
+  ⊗r2 : {S : Irr} {Γ Δ Ω : Cxt} {A B D : Fma} 
+        (f : [ • ] irr S ∣ Γ ++ D ∷ Δ ؛ [] ⊢ri A)
         (g : [ ∘ ] ─ ∣ Ω ؛ _ ⊢ri B) →
      ---------------------------------------------
-        [ • ] (just (A' ⊸ B') , _) ∣ Γ ؛ D ∷ Δ ++ Ω ⊢f (A ⊗ B , _)
+        [ • ] S ∣ Γ ؛ D ∷ Δ ++ Ω ⊢f (A ⊗ B , _)
 
 -- We don't display the white phase
 _∣_⊢ri_ : Stp → Cxt → Fma → Set
@@ -213,7 +207,7 @@ Ir-ri = li2ri (p2li (f2p Ir))
          just (A ⊸ B) ∣ Γ ++ Δ ⊢ri C
 
 ⊸l-ri f (⊸r g) = ⊸r (⊸l-ri f g)
-⊸l-ri f (li2ri g) = li2ri (p2li (f2p⊸ (⊸l f g)))
+⊸l-ri f (li2ri g) = li2ri (p2li (f2p (⊸l f g)))
 
 -- -- Generalization of rule ⊗r in phase ri, proved simultaneusly with
 -- -- variants where the 1st premise is in phase li and f
@@ -250,7 +244,6 @@ gen⊗r-li Γ₁ (⊗l f) g eq = ⊗l (gen⊗r-li Γ₁ f g (cong (_ ∷_) eq))
 gen⊗r-li Γ₁ (p2li f) g eq = p2li (gen⊗r-p Γ₁ f g eq)
 
 gen⊗r-p Γ₁ (f2p f) g eq = f2p (gen⊗r-f Γ₁ f g eq)
-gen⊗r-p Γ₁ (f2p⊸ f) g eq = f2p⊸ (gen⊗r-f Γ₁ f g eq)
 gen⊗r-p {Δ = Δ} {Γ₀ = []} (A' ∷ Γ) (pass f) g refl =
   f2p (⊗r (⊸r⋆-ri• (A' ∷ Γ) (li2ri (p2li (pass• f)))) g)
 gen⊗r-p {Γ₀ = A' ∷ Γ₀} Γ₁ (pass f) g refl = pass (gen⊗r-li Γ₁ f g refl)
@@ -258,20 +251,12 @@ gen⊗r-p {Γ₀ = A' ∷ Γ₀} Γ₁ (pass f) g refl = pass (gen⊗r-li Γ₁ 
 gen⊗r-f {Γ₀ = Γ₀} Γ₁ (⊸l {Γ} {Δ} f g) h eq with ++? Γ₀ Γ Γ₁ Δ eq
 ... | inj₁ (Λ , refl , refl) = ⊸l f (gen⊗r-li Γ₁ g h refl)
 ... | inj₂ (D , Λ , refl , refl) =
-  ⊗r (⊸r⋆-ri• (D ∷ Λ ++ Δ) (li2ri (p2li (f2p⊸• (⊸l• f g))))) h
+  ⊗r (⊸r⋆-ri• (D ∷ Λ ++ Δ) (li2ri (p2li (f2p (⊸l• f g))))) h
 gen⊗r-f {Γ₀ = Γ₀} Γ₁ (⊗r {Γ = Γ} {Δ} f g) h eq with ++? Γ₀ Γ Γ₁ Δ eq
-gen⊗r-f {─ , _} Γ₁ (⊗r {Γ = Γ} f g) h eq | inj₁ (Λ , refl , refl)
-  = ⊗r {Γ = Γ ++ Λ} (⊸r⋆-ri• Γ₁ (li2ri (p2li (f2p (⊗r f g))))) h
-gen⊗r-f {just (` X) , _} Γ₁ (⊗r {Γ = Γ} f g) h eq | inj₁ (Λ , refl , refl)
-  = ⊗r {Γ = Γ ++ Λ} (⊸r⋆-ri• Γ₁ (li2ri (p2li (f2p (⊗r f g))))) h
-gen⊗r-f {just (_ ⊸ _) , _} Γ₁ (⊗r {Γ = Γ} f g) h eq | inj₁ (Λ , refl , refl)
-  = ⊗r {Γ = Γ ++ Λ} (⊸r⋆-ri• Γ₁ (li2ri (p2li (f2p⊸• (⊗r f g))))) h
-gen⊗r-f {─ , _} ._ (⊗r {Δ = Δ} f g) h eq | inj₂ (D , Λ , refl , refl)
-  = ⊗r (⊸r⋆-ri• (D ∷ Λ ++ Δ) (li2ri (p2li (f2p (⊗r f g))))) h
-gen⊗r-f {just (` X) , _} ._ (⊗r {Δ = Δ} f g) h eq | inj₂ (D , Λ , refl , refl)
-  = ⊗r (⊸r⋆-ri• (D ∷ Λ ++ Δ) (li2ri (p2li (f2p (⊗r f g))))) h
-gen⊗r-f {just (_ ⊸ _) , _} _ (⊗r f g) h _ | inj₂ (D , Λ , refl , refl)
-  = ⊗r (⊸r⋆-ri• _ (li2ri (p2li (f2p⊸• (⊗r2 f g))))) h
+gen⊗r-f Γ₁ (⊗r {S = S}{Γ = Γ} f g) h eq | inj₁ (Λ , refl , refl)
+  = ⊗r {Γ = Γ ++ Λ} (⊸r⋆-ri• Γ₁ (li2ri (p2li {S = S} (f2p (⊗r f g))))) h
+gen⊗r-f ._ (⊗r {S = S} {Δ = Δ} f g) h eq | inj₂ (D , Λ , refl , refl)
+  = ⊗r (⊸r⋆-ri• (D ∷ Λ ++ Δ) (li2ri (p2li {S = S} (f2p (⊗r2 f g))))) h
 gen⊗r-f {Γ₀ = []} .[] ax g refl = ⊗r (li2ri (p2li (f2p ax))) g
 gen⊗r-f {Γ₀ = []} .[] Ir g refl = ⊗r (li2ri (p2li (f2p Ir))) g
 
@@ -342,11 +327,9 @@ emb-li (p2li f) = emb-p f
 
 emb-p (pass f) = pass (emb-li f)
 emb-p (f2p f) = emb-f f
-emb-p (f2p⊸ f) = emb-f f
 
 emb-p• (pass• f) = pass (emb-li f)
-emb-p• (f2p f) = emb-f f
-emb-p• (f2p⊸• f) = emb-f• f
+emb-p• (f2p f) = emb-f• f
 
 emb-f ax = ax
 emb-f Ir = Ir
@@ -354,6 +337,8 @@ emb-f (⊸l f g) = ⊸l (emb-ri f) (emb-li g)
 emb-f (⊗r f g) = ⊗r (emb-ri• f) (emb-ri g)
 
 emb-f• (⊸l• f g) = ⊸l (emb-ri f) (emb-li g)
+emb-f• ax = ax
+emb-f• Ir = Ir
 emb-f• (⊗r f g) = ⊗r (emb-ri• f) (emb-ri g)
 emb-f• (⊗r2 f g) = ⊗r (emb-ri• f) (emb-ri g)
 
@@ -417,7 +402,7 @@ gen⊗r⊸l-ri : {Γ₀ : Cxt} (Γ₁ : Cxt) {Δ Λ : Cxt} {A B A' B' : Fma}
               (h : ─ ∣ Λ ⊢ri B) →
         -----------------------------------------------------------
               gen⊗r-ri {Γ₀ = Γ₀ ++ Δ} Γ₁ (⊸l-ri f g) h
-                 ≡ p2li (f2p⊸ (⊸l f (gen⊗r-ri Γ₁ g h)))
+                 ≡ p2li (f2p (⊸l f (gen⊗r-ri Γ₁ g h)))
 
 gen⊗r⊸l-ri Γ₁ f (⊸r {A = A} g) h = gen⊗r⊸l-ri (Γ₁ ∷ʳ A) f g h
 gen⊗r⊸l-ri {Γ₀} Γ₁ {Δ} f (li2ri g) h rewrite ++?-inj₁ Δ Γ₀ Γ₁ = refl
@@ -551,7 +536,6 @@ embgen⊗r-p {Γ₀ = A' ∷ Γ₀} Γ₁ (pass f) g refl
    ∙ (~ ⊗rpass)
    ∙ ⊗r (~ (⊸r⋆pass Γ₁)) refl
 embgen⊗r-p Γ₁ (f2p f) g refl = embgen⊗r-f Γ₁ f g refl
-embgen⊗r-p Γ₁ (f2p⊸ f) g refl = embgen⊗r-f Γ₁ f g refl
  
 embgen⊗r-f {Γ₀ = Γ₀} Γ₁ (⊸l {Γ} {Δ} f g₁) g eq with ++? Γ₀ Γ Γ₁ Δ eq
 embgen⊗r-f Γ₁ (⊸l {Γ} f g₁) g refl | inj₁ (Λ , refl , refl) 
@@ -561,17 +545,9 @@ embgen⊗r-f Γ₁ (⊸l {Γ} f g₁) g refl | inj₁ (Λ , refl , refl)
 embgen⊗r-f ._ (⊸l {Δ = Δ} f g₁) g refl | inj₂ (D , Λ , refl , refl)
   = ⊗r (⊸r (emb⊸r⋆• (Λ ++ Δ) _)) refl
 embgen⊗r-f {Γ₀ = Γ₀} Γ₁ (⊗r {Γ = Γ} {Δ} f g) h eq with ++? Γ₀ Γ Γ₁ Δ eq
-embgen⊗r-f {─ , _} Γ₁ (⊗r f g) h refl | inj₁ (Λ , refl , refl)
+embgen⊗r-f Γ₁ (⊗r f g) h refl | inj₁ (Λ , refl , refl)
   = ⊗r (emb⊸r⋆• Γ₁ _) refl
-embgen⊗r-f {just (` X) , _} Γ₁ (⊗r f g) h refl | inj₁ (Λ , refl , refl)
-  = ⊗r (emb⊸r⋆• Γ₁ _) refl
-embgen⊗r-f {just (A ⊸ B) , _} Γ₁ (⊗r f g) h refl | inj₁ (Λ , refl , refl)
-  = ⊗r (emb⊸r⋆• Γ₁ _) refl
-embgen⊗r-f {─ , _} _ (⊗r {Δ = Δ} f g) h refl | inj₂ (D , Λ , refl , refl)
-  = ⊗r (⊸r (emb⊸r⋆• (Λ ++ Δ) _)) refl
-embgen⊗r-f {just (` X) , _} _ (⊗r {Δ = Δ} f g) h refl | inj₂ (D , Λ , refl , refl)
-  = ⊗r (⊸r (emb⊸r⋆• (Λ ++ Δ) _)) refl
-embgen⊗r-f {just (A ⊸ B) , _} _ (⊗r {Δ = Δ} f g) h refl | inj₂ (D , Λ , refl , refl)
+embgen⊗r-f _ (⊗r {Δ = Δ} f g) h refl | inj₂ (D , Λ , refl , refl)
   = ⊗r (⊸r (emb⊸r⋆• (Λ ++ Δ) _)) refl
 embgen⊗r-f {Γ₀ = []} .[] ax g refl = refl
 embgen⊗r-f {Γ₀ = []} .[] Ir g refl = refl
@@ -621,64 +597,48 @@ ri•2ri (⊸r• f) = ⊸r (ri•2ri f)
 ri•2ri (li2ri (p2li f)) = li2ri (p2li (p•2p f))
 
 p•2p (pass• f) = pass f
-p•2p (f2p f) = f2p f
-p•2p (f2p⊸• f) = f2p⊸ (f•2f f)
+p•2p (f2p f) = f2p (f•2f f) 
 
 f•2f (⊸l• f g) = ⊸l f g
+f•2f Ir = Ir
+f•2f ax = ax
 f•2f (⊗r f g) = ⊗r f g
 f•2f (⊗r2 f g) = ⊗r f g
 
-gen⊗r-f-eqAt : {S : IrrAt} {Γ₀ : Cxt} (Γ₁ : Cxt) {Γ Δ : Cxt}
-               {A : Pos} {B : Fma}
-               (f : irrAt S ∣ Γ ⊢f A) (g : ─ ∣ Δ ⊢ri B)
-               (eq : Γ ≡ Γ₀ ++ Γ₁)→
-               gen⊗r-f Γ₁ f g eq
-                 ≡ ⊗r (⊸r⋆-ri• Γ₁ (li2ri (p2li (f2p
-                                     (subst (λ x → irrAt S ∣ x ⊢f A) eq f)))))
-                      g
-
-gen⊗r-f-eqAt {Γ₀ = Γ₀} Γ₁ (⊗r {Γ = Γ} {Δ} f g) h eq with ++? Γ₀ Γ Γ₁ Δ eq
-gen⊗r-f-eqAt {just (` X) , _} Γ₁ (⊗r f g) h refl | inj₁ (Λ , refl , refl)
-  = refl
-gen⊗r-f-eqAt {─ , _} Γ₁ (⊗r f g) h refl | inj₁ (Λ , refl , refl) = refl
-gen⊗r-f-eqAt {just (` X) , _} _ (⊗r f g) h refl | inj₂ (D , Λ , refl , refl)
-  = refl
-gen⊗r-f-eqAt {─ , _} _ (⊗r f g) h refl | inj₂ (D , Λ , refl , refl) = refl
-gen⊗r-f-eqAt {Γ₀ = []} .[] ax g refl = refl
-gen⊗r-f-eqAt {Γ₀ = []} .[] Ir g refl = refl
-
-gen⊗r-f-eq⊸ : {Γ₀ : Cxt} (Γ₁ : Cxt) {Δ : Cxt} {A : Pos} {A' B' B : Fma}
-               (f : [ • ] (just (A' ⊸ B') , _) ∣ Γ₀ ؛ Γ₁ ⊢f A)
+gen⊗r-f-eq : {S : Irr} {Γ₀ : Cxt} (Γ₁ : Cxt) {Δ : Cxt} {A : Pos} {B : Fma}
+               (f : [ • ] S ∣ Γ₀ ؛ Γ₁ ⊢f A)
                (g : ─ ∣ Δ ⊢ri B) →
                gen⊗r-f Γ₁ (f•2f f) g refl
-                    ≡ ⊗r (⊸r⋆-ri• Γ₁ (li2ri (p2li (f2p⊸• f)))) g
-gen⊗r-f-eq⊸ {Γ₀} .(D ∷ Δ ++ Ω) (⊸l• {Δ = Δ} {Ω} {D = D} f g) h
+                    ≡ ⊗r (⊸r⋆-ri• Γ₁ (li2ri (p2li (f2p f)))) g
+gen⊗r-f-eq .(T[] •) ax g = refl
+gen⊗r-f-eq .(T[] •) Ir g = refl
+gen⊗r-f-eq {Γ₀ = Γ₀} .(D ∷ Δ ++ Ω) (⊸l• {Δ = Δ} {Ω} {D = D} f g₁) g
   rewrite ++?-inj₂ Γ₀ Δ Ω D = refl
-gen⊗r-f-eq⊸ Γ₁ (⊗r {_} {_} {Γ} {Δ} f g) h
-  rewrite ++?-inj₁ Δ Γ Γ₁ = refl
-gen⊗r-f-eq⊸ {Γ₀} .(D ∷ Δ ++ Ω) (⊗r2 {Δ = Δ} {Ω} {D = D} f g) h
+gen⊗r-f-eq Γ₁ (⊗r {Γ = Γ} {Δ} f g) h
+  rewrite ++?-inj₁ Δ Γ Γ₁ = refl 
+gen⊗r-f-eq {Γ₀ = Γ₀} .(D ∷ Δ ++ Ω) (⊗r2 {Δ = Δ} {Ω} {D = D} f g) h 
   rewrite ++?-inj₂ Γ₀ Δ Ω D = refl
-
+  
 f2p∘ : {S : Irr} {Γ : Cxt} {C : Pos} 
        (f :  S ∣ Γ ⊢f C) → 
     -------------------------
         S ∣ Γ ⊢p C
 f2p∘ {─ , _} f = f2p f
 f2p∘ {just (` _) , _} f = f2p f
-f2p∘ {just (_ ⊸ _) , _} f = f2p⊸ f
+f2p∘ {just (_ ⊸ _) , _} f = f2p f
 
 gen⊗r-ri-eq : {S : Irr} {Γ : Cxt} (Γ' : Cxt) {Δ : Cxt} {A B : Fma}
               (f : [ • ] irr S ∣ Γ ؛ Γ' ⊢ri A) (g : ─ ∣ Δ ⊢ri B) →
               gen⊗r-ri Γ' (ri•2ri f) g
-                ≡ p2li {S = S} (f2p∘ (⊗r (⊸r⋆-ri• Γ' f) g))
+                ≡ p2li {S = S} (f2p (⊗r (⊸r⋆-ri• Γ' f) g))
 gen⊗r-p-eq : {S : Irr} {Γ : Cxt} (Γ' : Cxt) {Δ : Cxt} {A : Pos} {B : Fma}
              (f : [ • ] S ∣ Γ ؛ Γ' ⊢p A) (g : ─ ∣ Δ ⊢ri B) →
              gen⊗r-p Γ' (p•2p f) g refl
-                ≡ f2p∘ (⊗r (⊸r⋆-ri• Γ' (li2ri (p2li f))) g)
+                ≡ f2p (⊗r (⊸r⋆-ri• Γ' (li2ri (p2li f))) g)
        
 gen⊗r-ri-eq Γ' (⊸r• f) g =
   trans (gen⊗r-ri-eq _ f g)
-        (cong p2li (cong f2p∘ (cong (λ x → ⊗r x g) (⊸r⋆⊸r-ri• Γ' f)))) 
+        (cong p2li (cong f2p (cong (λ x → ⊗r x g) (⊸r⋆⊸r-ri• Γ' f)))) 
 gen⊗r-ri-eq {─ , _} Γ' (li2ri (p2li f)) g = cong p2li (gen⊗r-p-eq Γ' f g)
 gen⊗r-ri-eq {just (` X) , _} Γ' (li2ri (p2li f)) g
   = cong p2li (gen⊗r-p-eq Γ' f g)
@@ -686,11 +646,7 @@ gen⊗r-ri-eq {just (A' ⊸ B') , _} Γ' (li2ri (p2li f)) g
   = cong p2li (gen⊗r-p-eq Γ' f g)
 
 gen⊗r-p-eq .(_ ∷ _) (pass• f) g = refl
-gen⊗r-p-eq Γ' (f2p {S = (─ , _)} f) g = cong f2p (gen⊗r-f-eqAt Γ' f g refl)
-gen⊗r-p-eq Γ' (f2p {S = (just (` X) , _)} f) g
-  = cong f2p (gen⊗r-f-eqAt Γ' f g refl)
-gen⊗r-p-eq Γ' (f2p⊸• f) g = cong f2p⊸ (gen⊗r-f-eq⊸ Γ' f g)
-
+gen⊗r-p-eq Γ' (f2p f) g = cong f2p (gen⊗r-f-eq Γ' f g)
 
 focusemb-ri : {S : Stp} {Γ : Cxt} {C : Fma}
            (f : S ∣ Γ ⊢ri C) → 
@@ -709,10 +665,10 @@ focusemb-p• : {S : Irr} {Γ Ω : Cxt} {C : Pos}
            focus (emb-p• f) ≡ li2ri (p2li (p•2p f))
 focusemb-f : {S : Irr} {Γ : Cxt} {C : Pos}
            (f : S ∣ Γ ⊢f C) → 
-           focus (emb-f f) ≡ li2ri (p2li (f2p∘ f))
+           focus (emb-f f) ≡ li2ri (p2li (f2p f))
 focusemb-f• : {S : Irr} {Γ Ω : Cxt} {C : Pos}
            (f : [ • ] S ∣ Γ ؛ Ω ⊢f C) → 
-           focus (emb-f• f) ≡ li2ri (p2li (f2p∘ (f•2f f)))
+           focus (emb-f• f) ≡ li2ri (p2li (f2p (f•2f f)))
 
 focusemb-ri (⊸r f) = cong ⊸r (focusemb-ri f)
 focusemb-ri (li2ri f) = focusemb-li f
@@ -725,22 +681,20 @@ focusemb-li (⊗l f) = cong ⊗l-ri (focusemb-li f)
 focusemb-li (p2li f) = focusemb-p f
 
 focusemb-p (pass f) = cong pass-ri (focusemb-li f)
-focusemb-p (f2p {S = (─ , _)} f) = focusemb-f f
-focusemb-p (f2p {S = (just (` _) , _)} f) = focusemb-f f
-focusemb-p (f2p⊸ f) = focusemb-f f
+focusemb-p (f2p f) = focusemb-f f
 
 focusemb-p• (pass• f) = cong pass-ri (focusemb-li f)
-focusemb-p• (f2p {S = (─ , _)} f) = focusemb-f f
-focusemb-p• (f2p {S = (just (` _) , _)} f) = focusemb-f f
-focusemb-p• (f2p⊸• f) = focusemb-f• f
+focusemb-p• (f2p f) = focusemb-f• f 
 
 focusemb-f ax = refl
 focusemb-f Ir = refl
 focusemb-f (⊸l f g) = cong₂ ⊸l-ri (focusemb-ri f) (focusemb-li g)
 focusemb-f (⊗r f g) =
   cong li2ri (trans (cong₂ ⊗r-li (focusemb-ri• f) (focusemb-ri g))
-                    (gen⊗r-ri-eq [] f g))
+                    (gen⊗r-ri-eq [] f g)) 
 
+focusemb-f• ax = refl
+focusemb-f• Ir = refl
 focusemb-f• (⊸l• f g) = cong₂ ⊸l-ri (focusemb-ri f) (focusemb-li g)
 focusemb-f• (⊗r f g) = 
   cong li2ri (trans (cong₂ ⊗r-li (focusemb-ri• f) (focusemb-ri g))
@@ -748,3 +702,31 @@ focusemb-f• (⊗r f g) =
 focusemb-f• (⊗r2 f g) = 
   cong li2ri (trans (cong₂ ⊗r-li (focusemb-ri• f) (focusemb-ri g))
                     (gen⊗r-ri-eq [] f g))
+
+
+{-
+t : {X Y : At}
+  → just ((` X ⊸ ` X) ⊸ (` X ⊸ ` Y)) ∣ ` X ⊸ ` X ∷ ` X ∷ [] ⊢ri ` Y
+t {X} {Y} = li2ri (p2li (f2p⊸
+  (⊸l {` X ⊸ ` X ∷ []}
+      (⊸r (li2ri (p2li (pass (p2li (f2p⊸
+        (⊸l {` X ∷ []}
+            (li2ri (p2li (pass (p2li (f2p ax)))))
+            (p2li (f2p ax)))))))))
+     (p2li (f2p⊸
+        (⊸l {` X ∷ []}
+             (li2ri (p2li (pass (p2li (f2p ax)))))
+             (p2li (f2p ax))))))))
+
+t' : {X Y : At}
+  → just ((` X ⊸ ` X) ⊸ (` X ⊸ ` Y)) ∣ ` X ⊸ ` X ∷ ` X ∷ [] ⊢ri ` Y
+t' {X} {Y} = li2ri (p2li (f2p⊸
+  (⊸l {[]}
+       (⊸r (li2ri (p2li (pass (p2li (f2p ax))))))
+       (p2li (f2p⊸
+         (⊸l {_} {[]}
+              (li2ri (p2li (pass (p2li (f2p⊸
+                (⊸l (li2ri (p2li (pass (p2li (f2p ax))))) (p2li (f2p ax))))))))
+              (p2li (f2p ax))))))))
+
+-}
