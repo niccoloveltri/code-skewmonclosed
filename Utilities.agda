@@ -175,3 +175,23 @@ mapL-comp g f (x ∷ xs) = cong (g (f x) ∷_) (mapL-comp g f xs)
 {-# REWRITE mapL++ #-}
 {-# REWRITE mapL-id #-}
 {-# REWRITE mapL-comp #-}
+
+infix 2 _∈_ 
+data _∈_ {A : Set} (a : A) : List A → Set where
+  here : ∀{xs} → a ∈ a ∷ xs
+  there : ∀{x xs} → a ∈ xs → a ∈ x ∷ xs
+
+∈++ : ∀{A a} (xs ys : List A) → a ∈ xs ++ ys → a ∈ xs ⊎ a ∈ ys
+∈++ [] ys m = inj₂ m
+∈++ (x ∷ xs) ys here = inj₁ here
+∈++ (x ∷ xs) ys (there m) with ∈++ xs ys m
+... | inj₁ m' = inj₁ (there m')
+... | inj₂ m' = inj₂ m'
+
+∈₁ : ∀{A a} (xs ys : List A) → a ∈ xs → a ∈ xs ++ ys 
+∈₁ _ _ here = here
+∈₁ _ ys (there m) = there (∈₁ _ ys m)
+
+∈₂ : ∀{A a} (xs ys : List A) → a ∈ ys → a ∈ xs ++ ys 
+∈₂ [] _ m = m
+∈₂ (x ∷ xs) _ m = there (∈₂ xs _ m)

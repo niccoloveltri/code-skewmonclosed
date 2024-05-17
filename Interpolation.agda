@@ -14,6 +14,11 @@ open import Utilities
 open import Formulae At
 open import SeqCalc At
 
+-- =======================================================
+-- A proof of Craig interpolation for the sequent calculus
+-- =======================================================
+
+-- Iterated ⊸l
 ⊸l⋆ : {Δ : Cxt} {B C : Fma}
   → (Ξ : List (Σ Cxt λ Δ → Σ Fma λ A → ─ ∣ Δ ⊢ A))
   → just B ∣ Δ ⊢ C
@@ -21,6 +26,7 @@ open import SeqCalc At
 ⊸l⋆ [] g = g
 ⊸l⋆ ((Γ , A , f) ∷ Ξ) g = ⊸l {Γ = Γ} f (⊸l⋆ Ξ g)
 
+-- List of atoms in formulae, contexts and stoups
 atom : Fma → List At
 atom (` X) = List.[ X ]
 atom I = []
@@ -34,26 +40,6 @@ atom-s : Stp → List At
 atom-s (just A) = atom A
 atom-s ─ = []
 
-infix 2 _∈_ 
-data _∈_ {A : Set} (a : A) : List A → Set where
-  here : ∀{xs} → a ∈ a ∷ xs
-  there : ∀{x xs} → a ∈ xs → a ∈ x ∷ xs
-
-∈++ : ∀{A a} (xs ys : List A) → a ∈ xs ++ ys → a ∈ xs ⊎ a ∈ ys
-∈++ [] ys m = inj₂ m
-∈++ (x ∷ xs) ys here = inj₁ here
-∈++ (x ∷ xs) ys (there m) with ∈++ xs ys m
-... | inj₁ m' = inj₁ (there m')
-... | inj₂ m' = inj₂ m'
-
-∈₁ : ∀{A a} (xs ys : List A) → a ∈ xs → a ∈ xs ++ ys 
-∈₁ _ _ here = here
-∈₁ _ ys (there m) = there (∈₁ _ ys m)
-
-∈₂ : ∀{A a} (xs ys : List A) → a ∈ ys → a ∈ xs ++ ys 
-∈₂ [] _ m = m
-∈₂ (x ∷ xs) _ m = there (∈₂ xs _ m)
-
 ∈atom⊸⋆ : ∀{X} (Γ : Cxt) {C} → X ∈ atom (Γ ⊸⋆ C) → X ∈ atom-c Γ ⊎ X ∈ atom C
 ∈atom⊸⋆ [] m = inj₂ m
 ∈atom⊸⋆ (A ∷ Γ) {C} m with ∈++ (atom A) (atom (Γ ⊸⋆ C)) m
@@ -63,6 +49,8 @@ data _∈_ {A : Set} (a : A) : List A → Set where
 ... | inj₂ m'' = inj₂ m''
 
 {-
+Records collecting the data of Craig interpolation.
+
 hasIntrp-s reads:
 
 Given f : S ∣ Γ ++ Δ ⊢ C, there exist
@@ -99,6 +87,8 @@ record hasIntrp-c {S} Γ₀ Γ₁ Γ₂ {Γ C} (f : S ∣ Γ ⊢ C) (eq : Γ ≡
     atom-Ξ : ∀{X} → X ∈ atom-c (List.map (λ x → proj₁ (proj₂ x)) Ξ) → X ∈ atom-c (concat (List.map proj₁ Ξ))
     atom-g : ∀{X} → X ∈ atom-c (List.map (λ x → proj₁ (proj₂ x)) Ξ) → X ∈ atom-s S ++ atom-c Γ₀ ++ atom-c Γ₂ ++ atom C
 
+
+-- The proof of Craig interpolation
 
 intrp-s : ∀ {S} Γ₁ Γ₂ {Γ C} (f : S ∣ Γ ⊢ C) (eq : Γ ≡ Γ₁ ++ Γ₂)
   → hasIntrp-s Γ₁ Γ₂ f eq
@@ -326,3 +316,18 @@ intrp-c Γ₀ (A ∷ _) Γ₂ (⊸l {A = A₁}{B₁}{C} f g) eq | inj₂ (A , Γ
     ... | inj₁ m'' = ∈₁ (atom A₁ ++ atom B₁ ++ atom-c Γ₀) (atom-c Γ₂ ++ atom C) (∈₂ (atom A₁ ++ atom B₁) (atom-c Γ₀) m'')
     ... | inj₂ m'' = ∈₁ (atom A₁) (atom B₁ ++ atom-c Γ₀ ++ atom-c Γ₂ ++ atom C) m''
 
+---
+
+-- Examples
+
+module _ {X Y Z W V : At} where
+
+  f : just ((` X ⊗ ` Y) ⊸ ` Z) ∣ ` W ⊸ ` X  ∷ ` W ∷ ` Y ∷ [] ⊢ ` Z
+  f = ⊸l (pass (⊸l (pass ax) (⊗r ax (pass ax)))) ax
+
+  intrp-f : hasIntrp-s List.[ ` W ⊸ ` X ] (` W ∷ ` Y ∷ []) f refl
+  intrp-f = intrp-s List.[ ` W ⊸ ` X ] (` W ∷ ` Y ∷ []) f refl
+
+  D = hasIntrp-s.D intrp-f
+  D-eq : D ≡ ` W ⊸ (` Y ⊸ ` Z)
+  D-eq = refl
