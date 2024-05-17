@@ -1,3 +1,4 @@
+{-# OPTIONS --rewriting #-}
 module Main where
 
 -- Some basic facts about lists
@@ -11,3 +12,6 @@ import SeqCalc
 
 -- Focusing
 import Focusing
+
+-- Interpolation
+import Interpolation

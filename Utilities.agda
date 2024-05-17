@@ -5,7 +5,7 @@ module Utilities where
 open import Data.Empty
 open import Data.Maybe
 open import Data.Sum 
-open import Data.List
+open import Data.List renaming (map to mapL)
 open import Data.Product 
 open import Relation.Binary.PropositionalEquality
 
@@ -151,3 +151,27 @@ cases++-inj₂ xs xs' ys x | inj₂ (.xs , refl , refl) | refl = refl
 ... | inj₁ (zs , p , q) = ⊥-elim (canc⊥2 xs {xs₀ ++ zs} q)
 ... | inj₂ (y , zs , p , q) with ++canc {xs = x ∷ xs₀} {y ∷ zs} xs p
 ++?-inj₂ xs xs₀ ys' x | inj₂ (.x , .xs₀ , refl , refl) | refl = refl
+
+concat++ : {A : Set} (xss yss : List (List A))
+  → concat (xss ++ yss) ≡ concat xss ++ concat yss
+concat++ [] yss = refl
+concat++ (xs ∷ xss) yss = cong (xs ++_) (concat++ xss yss)
+
+mapL++ : {A B : Set} (f : A → B) (xs ys : List A)
+  → mapL f (xs ++ ys) ≡ mapL f xs ++ mapL f ys
+mapL++ f [] ys = refl
+mapL++ f (x ∷ xs) ys = cong (f x ∷_) (mapL++ f xs ys)
+
+mapL-id : {A : Set} (xs : List A)
+  → mapL (λ x → x) xs ≡ xs
+mapL-id [] = refl
+mapL-id (x ∷ xs) = cong (x ∷_) (mapL-id xs)
+
+mapL-comp : {A B C : Set} (g : B → C) (f : A → B) (xs : List A)
+  → mapL g (mapL f xs) ≡ mapL (λ x → g (f x)) xs
+mapL-comp g f [] = refl
+mapL-comp g f (x ∷ xs) = cong (g (f x) ∷_) (mapL-comp g f xs)
+
+{-# REWRITE mapL++ #-}
+{-# REWRITE mapL-id #-}
+{-# REWRITE mapL-comp #-}
