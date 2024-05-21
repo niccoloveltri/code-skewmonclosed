@@ -1,30 +1,34 @@
 {-# OPTIONS --rewriting #-}
 
-module Interpolation (At : Set) where
+module Interpolation where
 
 open import Function
 open import Data.Empty
 open import Data.Maybe renaming (map to mmap)
 open import Data.Sum
 open import Data.List as List
+open import Data.List.Relation.Unary.All
+open import Relation.Unary hiding (_∈_)
 open import Data.Product
 open import Relation.Binary.PropositionalEquality hiding (_≗_)
 open ≡-Reasoning
 open import Utilities
-open import Formulae At
-open import SeqCalc At
+open import Formulae
+open import SeqCalc 
+open import Equations
 
 -- =======================================================
 -- A proof of Craig interpolation for the sequent calculus
 -- =======================================================
 
 -- Iterated ⊸l
-⊸l⋆ : {Δ : Cxt} {B C : Fma}
+⊸l⋆ : {Δ Γ : Cxt} {B C : Fma}
   → (Ξ : List (Σ Cxt λ Δ → Σ Fma λ A → ─ ∣ Δ ⊢ A))
   → just B ∣ Δ ⊢ C
-  → just (List.map (λ x → proj₁ (proj₂ x)) Ξ ⊸⋆ B) ∣ concat (List.map proj₁ Ξ) ++ Δ ⊢ C
-⊸l⋆ [] g = g
-⊸l⋆ ((Γ , A , f) ∷ Ξ) g = ⊸l {Γ = Γ} f (⊸l⋆ Ξ g)
+  → Γ ≡ concat (List.map proj₁ Ξ)
+  → just (List.map (λ x → proj₁ (proj₂ x)) Ξ ⊸⋆ B) ∣ Γ ++ Δ ⊢ C
+⊸l⋆ [] g refl = g
+⊸l⋆ ((Γ , A , f) ∷ Ξ) g refl = ⊸l {Γ = Γ} f (⊸l⋆ Ξ g refl)
 
 -- List of atoms in formulae, contexts and stoups
 atom : Fma → List At
@@ -96,11 +100,6 @@ intrp-s : ∀ {S} Γ₁ Γ₂ {Γ C} (f : S ∣ Γ ⊢ C) (eq : Γ ≡ Γ₁ ++ 
 intrp-c : ∀{S} Γ₀ Γ₁ Γ₂ {Γ C} (f : S ∣ Γ ⊢ C) (eq : Γ ≡ Γ₀ ++ Γ₁ ++ Γ₂)
   → hasIntrp-c Γ₀ Γ₁ Γ₂ f eq
 
-intrp-s [] [] ax refl = i-s _ ax ax id id
-intrp-s [] (A ∷ Γ₂) (pass f) refl = i-s _ Ir (Il (pass f)) (λ ()) λ ()
-intrp-s (A ∷ Γ₁) Γ₂ (pass f) refl with intrp-s Γ₁ Γ₂ f refl
-... | i-s D g h a-g a-h = i-s D (pass g) h a-g a-h
-intrp-s [] [] Ir refl = i-s I Ir ax (λ ()) id
 intrp-s Γ₁ Γ₂ (Il f) refl with intrp-s Γ₁ Γ₂ f refl
 ... | i-s D g h a-g a-h = i-s D (Il g) h a-g a-h
 intrp-s Γ₁ Γ₂ (⊗l f) refl with intrp-s (_ ∷ Γ₁) Γ₂ f refl
@@ -150,8 +149,8 @@ intrp-s _ Γ₂ (⊸l {Γ} {A = A}{B} f g) eq | inj₁ (Γ' , refl , refl) with 
     ... | inj₁ m' = ∈₁ (atom A ++ atom B) (atom-c (Γ ++ Γ')) (∈₂ (atom A) (atom B) m')
     ... | inj₂ m' = ∈₂ (atom A ++ atom B) (atom-c (Γ ++ Γ')) (subst (λ x → _ ∈ x) (sym (concat++ (List.map atom Γ) (List.map atom Γ'))) (∈₂ (atom-c Γ) (atom-c Γ') m'))
 intrp-s Γ₁ _ (⊸l {Δ = Δ} {A = A}{B}{C} f g) eq | inj₂ (A' , Γ' , refl , refl) with intrp-s [] Δ g refl | intrp-c Γ₁ (A' ∷ Γ') [] f refl
-... | i-s E h k a-h a-k | i-c Ξ eq' l a-Ξ a-l =
-  i-s (Ds ⊸⋆ E) (⊸r⋆ Ds (⊸l l h)) (subst (λ x → just (Ds ⊸⋆ E) ∣ x ++ Δ ⊢ _) (sym eq') (⊸l⋆ Ξ k)) a-h' a-k'
+... | i-s E h k a-h a-k | i-c Ξ eq' l a-Ξ a-l = 
+  i-s (Ds ⊸⋆ E) (⊸r⋆ Ds (⊸l l h)) (⊸l⋆ Ξ k eq') a-h' a-k'
   where
     Ds = List.map (λ x → proj₁ (proj₂ x)) Ξ
 
@@ -172,6 +171,11 @@ intrp-s Γ₁ _ (⊸l {Δ = Δ} {A = A}{B}{C} f g) eq | inj₂ (A' , Γ' , refl 
       ∈₁ (atom A' ++ atom-c (Γ' ++ Δ)) (atom C)
         (subst (λ x → _ ∈ atom A' ++ x) (sym (concat++ (List.map atom Γ') (List.map atom Δ)))
           (∈₁ (atom A' ++ atom-c Γ') (atom-c Δ) (subst (λ x → _ ∈ atom-c x) (sym eq') (a-Ξ m'))))
+intrp-s [] [] ax refl = i-s _ ax ax id id
+intrp-s [] (A ∷ Γ₂) (pass f) refl = i-s _ Ir (Il (pass f)) (λ ()) λ ()
+intrp-s (A ∷ Γ₁) Γ₂ (pass f) refl with intrp-s Γ₁ Γ₂ f refl
+... | i-s D g h a-g a-h = i-s D (pass g) h a-g a-h
+intrp-s [] [] Ir refl = i-s I Ir ax (λ ()) id
 
 intrp-c [] [] [] ax refl = i-c [] refl ax id (λ ())
 intrp-c [] [] Γ₂ (pass f) refl = i-c [] refl (pass f) (λ ()) (λ ())
@@ -320,7 +324,7 @@ intrp-c Γ₀ (A ∷ _) Γ₂ (⊸l {A = A₁}{B₁}{C} f g) eq | inj₂ (A , Γ
 
 -- Examples
 
-module _ {X Y Z W V : At} where
+module Ex {X Y Z W V : At} where
 
   f : just ((` X ⊗ ` Y) ⊸ ` Z) ∣ ` W ⊸ ` X  ∷ ` W ∷ ` Y ∷ [] ⊢ ` Z
   f = ⊸l (pass (⊸l (pass ax) (⊗r ax (pass ax)))) ax
@@ -331,3 +335,93 @@ module _ {X Y Z W V : At} where
   D = hasIntrp-s.D intrp-f
   D-eq : D ≡ ` W ⊸ (` Y ⊸ ` Z)
   D-eq = refl
+
+
+  f' : just ((` X ⊗ ` Y) ⊸ ` Z) ∣ [] ⊢ ` X ⊸ (` Y ⊸ ` Z)
+  f' = ⊸r (⊸r (⊸l (pass (⊗r ax (pass ax))) ax))
+
+  intrp-f' : hasIntrp-s [] [] f' refl
+  intrp-f' = intrp-s [] [] f' refl
+
+  intrp-f'-alt : hasIntrp-s [] [] f' refl
+  intrp-f'-alt =
+    i-s (` X ⊸ (` Y ⊸ ` Z))
+        f'
+        ax
+        id
+        id
+
+  non-uniq : intrp-f'-alt ≡ intrp-f' → ⊥
+  non-uniq eq with cong hasIntrp-s.D eq
+  ... | ()
+  
+
+
+---
+
+
+ccut⋆ : ∀{S : Stp} Γ₀ Γ₁ {Γ : Cxt} {C : Fma}
+  → (Ξ : List (Σ Cxt λ Δ → Σ Fma λ A → ─ ∣ Δ ⊢ A))
+  → (f : S ∣ Γ ⊢ C)
+  → (eq : Γ ≡ Γ₀ ++ List.map (λ x → proj₁ (proj₂ x)) Ξ ++ Γ₁)
+  → S ∣ Γ₀ ++ concat (List.map proj₁ Ξ) ++ Γ₁ ⊢ C
+ccut⋆ Γ₀ _ [] f eq = subst-cxt eq f
+ccut⋆ Γ₀ Γ₁ ((Δ , A , g) ∷ Ξ) f refl = ccut Γ₀ g (ccut⋆ (Γ₀ ∷ʳ _) Γ₁ Ξ f refl) refl
+
+scut⊸r⋆⊸l⋆ : {S : Stp} {Γ Δ Λ : Cxt} {B C : Fma}
+  → (Ξ : List (Σ Cxt λ Δ → Σ Fma λ A → ─ ∣ Δ ⊢ A))
+  → (f : S ∣ Γ ++ List.map (λ x → proj₁ (proj₂ x)) Ξ ⊢ B)
+  → (g : just B ∣ Δ ⊢ C)
+  → (eq : Λ ≡ concat (List.map proj₁ Ξ))
+  → scut (⊸r⋆ (List.map (λ x → proj₁ (proj₂ x)) Ξ) f) (⊸l⋆ Ξ g eq)
+         ≗ subst-cxt (cong (λ x → Γ ++ x ++ Δ) (sym eq)) (scut (ccut⋆ Γ [] Ξ f refl) g)
+
+scut-intrp-s : ∀ {S} Γ₁ Γ₂ {Γ C} (f : S ∣ Γ ⊢ C) (eq : Γ ≡ Γ₁ ++ Γ₂)
+  → scut (hasIntrp-s.g (intrp-s Γ₁ Γ₂ f eq)) (hasIntrp-s.h (intrp-s Γ₁ Γ₂ f eq)) ≗ subst-cxt eq f
+
+scut-intrp-s Γ₁ Γ₂ (Il f) refl = Il (scut-intrp-s Γ₁ Γ₂ f refl)
+scut-intrp-s Γ₁ Γ₂ (⊗l f) refl = ⊗l (scut-intrp-s (_ ∷ Γ₁) Γ₂ f refl)
+scut-intrp-s Γ₁ Γ₂ (⊸r {A = A}{B} f) refl =
+  scut⊸r (hasIntrp-s.g (intrp-s Γ₁ (Γ₂ ++ A ∷ []) f refl)) _
+  ∙ ⊸r (scut-intrp-s Γ₁ (Γ₂ ∷ʳ _) f refl)
+scut-intrp-s Γ₁ Γ₂ (⊗r {Γ = Γ} {Δ} f g) eq with ++? Γ₁ Γ Γ₂ Δ eq
+scut-intrp-s {S} _ Γ₂ (⊗r {Γ = Γ} {A = A}{B} f g) refl | inj₁ (Γ' , refl , refl) =
+  scut⊗r (hasIntrp-s.g (intrp-s Γ [] f refl)) _ _
+  ∙ ⊗r (scut-intrp-s Γ [] f refl) (scut-intrp-s Γ' Γ₂ g refl)
+scut-intrp-s Γ₁ _ (⊗r {Δ = Δ} {A}{B} f g) refl | inj₂ (A' , Γ' , refl , refl) =
+  scut⊗r (hasIntrp-s.g (intrp-s Γ₁ (A' ∷ Γ') f refl)) _ _
+  ∙ ⊗r {Γ = Γ₁ ++ A' ∷ Γ'} (scut-intrp-s Γ₁ (A' ∷ Γ') f refl) refl
+scut-intrp-s Γ₁ Γ₂ (⊸l {Γ} {Δ} f g) eq with ++? Γ₁ Γ Γ₂ Δ eq
+scut-intrp-s _ Γ₂ (⊸l {Γ} {A = A}{B} f g) refl | inj₁ (Γ' , refl , refl) =
+  ⊸l refl (scut-intrp-s Γ' Γ₂ g refl)
+scut-intrp-s Γ₁ _ (⊸l {Δ = Δ} {A = A}{B}{C} f g) refl | inj₂ (A' , Γ' , refl , refl) =
+  lem
+  where
+    Ξ = hasIntrp-c.Ξ (intrp-c Γ₁ (A' ∷ Γ') [] f refl)
+    Δs = List.map proj₁ Ξ
+    As = List.map (λ x → proj₁ (proj₂ x)) Ξ
+
+    eq : A' ∷ Γ' ≡ concat Δs
+    eq = hasIntrp-c.pt (intrp-c Γ₁ (A' ∷ Γ') [] f refl)
+
+    f' : ─ ∣ Γ₁ ++ As ⊢ A
+    f' = hasIntrp-c.g (intrp-c Γ₁ (A' ∷ Γ') [] f refl)
+    
+    E = hasIntrp-s.D (intrp-s [] Δ g refl)
+
+    g' : just B ∣ [] ⊢ E
+    g' = hasIntrp-s.g (intrp-s [] Δ g refl)
+
+    g'' : just E ∣ Δ ⊢ C
+    g'' = hasIntrp-s.h (intrp-s [] Δ g refl)
+
+    lem : scut (⊸r⋆ As (⊸l f' g')) (⊸l⋆ Ξ g'' eq) ≗ ⊸l f g
+    lem =
+      scut⊸r⋆⊸l⋆ Ξ (⊸l f' g') g'' eq
+      ∙ {!!}
+
+scut-intrp-s [] [] ax refl = refl
+scut-intrp-s [] (A ∷ Γ₂) (pass f) refl = refl
+scut-intrp-s (A ∷ Γ₁) Γ₂ (pass f) refl = pass (scut-intrp-s Γ₁ Γ₂ f refl)
+scut-intrp-s [] [] Ir refl = refl
+

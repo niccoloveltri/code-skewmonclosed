@@ -1,6 +1,6 @@
 {-# OPTIONS --rewriting #-}
 
-module Formulae (At : Set) where
+module Formulae where
 
 open import Data.Maybe
 open import Data.List
@@ -11,6 +11,7 @@ open import Relation.Binary.PropositionalEquality
 
 open import Utilities
 
+postulate At : Set
 
 -- Formulae
 data Fma : Set where

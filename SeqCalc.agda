@@ -1,6 +1,6 @@
 {-# OPTIONS --rewriting #-}
 
-module SeqCalc (At : Set) where
+module SeqCalc where
 
 open import Data.Empty
 open import Data.Maybe renaming (map to mmap)
@@ -10,7 +10,7 @@ open import Data.Product
 open import Relation.Binary.PropositionalEquality hiding (_≗_)
 open ≡-Reasoning
 open import Utilities
-open import Formulae At
+open import Formulae
 
 -- =======================================================================
 
@@ -39,35 +39,64 @@ subst-cxt : {S : Stp} → {Γ Γ' : Cxt} → {A : Fma} →
       Γ ≡ Γ' → S ∣ Γ ⊢ A → S ∣ Γ' ⊢ A 
 subst-cxt refl f = f
 
+-- Admissible invertible rules
+
+Il-1 : {Γ : Cxt} → {C : Fma}
+  → just I ∣ Γ ⊢ C
+  →  ─ ∣ Γ ⊢ C
+Il-1 ax = Ir
+Il-1 (Il f) = f
+Il-1 (⊗r f g) = ⊗r (Il-1 f) g
+Il-1 (⊸r f) = ⊸r (Il-1 f)
+
+⊗l-1 : {Γ : Cxt} → {A B C : Fma}
+  → just (A ⊗ B) ∣ Γ ⊢ C
+  → just A ∣ B ∷ Γ ⊢ C
+⊗l-1 ax = ⊗r ax (pass ax)
+⊗l-1 (⊗r f g) = ⊗r (⊗l-1 f) g
+⊗l-1 (⊗l f) = f
+⊗l-1 (⊸r f) = ⊸r (⊗l-1 f)
+
+⊸r-1 : {S : Stp} → {Γ : Cxt} → {A B : Fma}
+  → S ∣ Γ ⊢ A ⊸ B
+  → S ∣ Γ ∷ʳ A ⊢ B
+⊸r-1 ax = ⊸l (pass ax) ax
+⊸r-1 (pass f) = pass (⊸r-1 f)
+⊸r-1 (Il f) = Il (⊸r-1 f)
+⊸r-1 (⊗l f) = ⊗l (⊸r-1 f)
+⊸r-1 (⊸r f) = f
+⊸r-1 (⊸l f g) = ⊸l f (⊸r-1 g)
+
+
 -- Cut admissibility
 
 scut : {S : Stp} {Γ Δ : Cxt} {A C : Fma} 
         (f : S ∣ Γ ⊢ A) (g : just A ∣ Δ ⊢ C)  →
      ------------------------------------------
         S ∣ Γ ++ Δ ⊢ C
-        
+
 ccut : {T : Stp} {Γ Δ : Cxt} (Δ₀ : Cxt) {Δ' : Cxt} {A C : Fma}
        (f : ─ ∣ Γ ⊢ A)  (g : T ∣ Δ ⊢ C) (eq : Δ ≡ Δ₀ ++ A ∷ Δ') →
        -----------------------------------------------------------------
                      T ∣ Δ₀ ++ Γ ++ Δ' ⊢ C
-                                      
+
 scut ax g = g
 scut (pass f) g = pass (scut f g)
 scut Ir ax = Ir
 scut Ir (Il g) = g
 scut Ir (⊗r g h) = ⊗r (scut Ir g) h
 scut Ir (⊸r g) = ⊸r (scut Ir g)
+scut (Il f) g = Il (scut f g)
+scut (⊗r f f') ax = ⊗r f f'
+scut (⊗r f f') (⊗r g g') = ⊗r (scut (⊗r f f') g) g'
+scut (⊗r {Γ = Γ} f f') (⊗l g) = scut f (ccut [] f' g refl)
+scut (⊗r f f') (⊸r g) = ⊸r (scut (⊗r f f') g)
+scut (⊗l f) g = ⊗l (scut f g)
 scut (⊸r f) ax = ⊸r f
 scut (⊸r {Γ = Γ} f) (⊸l g g') = scut (ccut Γ g f refl) g'
 scut (⊸r f) (⊸r g) = ⊸r (scut (⊸r f) g)
 scut (⊸r f) (⊗r g g') = ⊗r (scut (⊸r f) g) g'
-scut (Il f) g = Il (scut f g)
 scut (⊸l f f') g = ⊸l f (scut f' g)
-scut (⊗r f f') ax = ⊗r f f'
-scut (⊗r f f') (⊗r g g') = ⊗r (scut (⊗r f f') g) g'
-scut (⊗r f f') (⊗l g) = scut f (ccut [] f' g refl)
-scut (⊗r f f') (⊸r g) = ⊸r (scut (⊗r f f') g)
-scut (⊗l f) g = ⊗l (scut f g)
 
 ccut Δ₀ f ax r = ⊥-elim ([]disj∷ Δ₀ r)
 ccut Δ₀ f (pass g) r with cases∷ Δ₀ r
@@ -83,6 +112,7 @@ ccut Δ₀ {Δ'} f (⊗r {Γ = Γ}{Δ} g g') p with cases++ Δ₀ Γ Δ' Δ p
 ccut Δ₀ f (⊗r g g') p | inj₁ (Γ₀ , refl , refl) = ⊗r (ccut Δ₀ f g refl) g'
 ccut ._ f (⊗r g g') p | inj₂ (Γ₀ , refl , refl) = ⊗r g (ccut Γ₀  f g' refl)
 ccut Δ₀ f (⊗l {B = B} g) r = ⊗l (ccut (B ∷ Δ₀) f g (cong (_∷_ B) r))
+
 
 -- ====================================================================
 
@@ -134,7 +164,30 @@ data _≗_ : {S  : Stp}{Γ : Cxt}{A : Fma} → S ∣ Γ ⊢ A → S ∣ Γ ⊢ A
   ⊸r⊸l : {Γ Δ : Cxt} {A B C D : Fma}
     → {f : ─ ∣ Γ ⊢ A} {g : just B ∣ Δ ++ C ∷ [] ⊢ D}
     → ⊸r {Γ = Γ ++ Δ} (⊸l f g) ≗ ⊸l f (⊸r g)
-    
+
+≡-to-≗ : ∀{S Γ C} {f g : S ∣ Γ ⊢ C} → f ≡ g → f ≗ g
+≡-to-≗ refl = refl
+
+-- -- equational reasoning sugar for ≗
+
+infix 4 _≗'_
+infix 1 proof≗_
+infixr 2 _≗〈_〉_
+infix 3 _qed≗
+
+data _≗'_ {S  : Stp}{Γ : Cxt}{A : Fma} (f g : S ∣ Γ ⊢ A) : Set where
+  relto :  f ≗ g → f ≗' g
+
+proof≗_ : {S  : Stp}{Γ : Cxt}{A : Fma} {f g : S ∣ Γ ⊢ A} → f ≗' g → f ≗ g
+proof≗ relto p = p
+
+_≗〈_〉_ :  {S  : Stp}{Γ : Cxt}{A : Fma} (f : S ∣ Γ ⊢ A) {g h : S ∣ Γ ⊢ A} → f ≗ g → g ≗' h → f ≗' h 
+
+_ ≗〈 p 〉 relto q = relto (p ∙ q)
+
+_qed≗  :  {S  : Stp}{Γ : Cxt}{A : Fma} (f : S ∣ Γ ⊢ A) → f ≗' f
+_qed≗ _ = relto refl
+
 -- Iterated ⊸r
 ⊸r⋆ : {S : Stp} {Γ : Cxt} (Δ : Cxt) {A : Fma}
       (f : S ∣ Γ ++ Δ ⊢ A) →

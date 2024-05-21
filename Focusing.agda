@@ -1,6 +1,6 @@
 {-# OPTIONS --rewriting #-}
 
-module Focusing (At : Set) where
+module Focusing where
 
 open import Data.List renaming (map to mapList)
 open import Data.Maybe
@@ -12,8 +12,8 @@ open import Relation.Binary.PropositionalEquality hiding (_≗_)
 open import Data.Bool renaming (Bool to Tag; true to •; false to ∘)
 
 open import Utilities
-open import Formulae At
-open import SeqCalc At
+open import Formulae
+open import SeqCalc 
 
 {-
 ===============================================================

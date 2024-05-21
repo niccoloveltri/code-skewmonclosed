@@ -10,6 +10,9 @@ import Formulae
 -- Sequent calculus
 import SeqCalc
 
+-- Equations satisfied by admissible cut rules
+import Equations
+
 -- Focusing
 import Focusing
 
