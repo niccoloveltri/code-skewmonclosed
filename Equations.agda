@@ -5,7 +5,7 @@ module Equations where
 open import Data.Empty
 open import Data.Maybe renaming (map to mmap)
 open import Data.Sum
-open import Data.List
+open import Data.List as List
 open import Data.Product
 open import Relation.Binary.PropositionalEquality hiding (_≗_)
 open ≡-Reasoning
@@ -289,6 +289,7 @@ ccut-hass {Γ₁ = Γ₁} {Γ₂} _ {Δ₁ = Δ₁} {Δ₂} {A₁} {A₂} f₁ f
 
 
 ----------------
+----------------
 
 -- cut rules and logical rules
 
@@ -441,6 +442,237 @@ scut⊸r {Δ = Δ} (⊸l {Γ = Γ}{Γ'} f f') g =
   ⊸r {Γ = Γ ++ Γ' ++ Δ} (⊸l f (scut f' g))
   qed≗
 
+scut⊸r⊗l : {Γ Δ : Cxt}{A A' B B' C : Fma}
+  → {f : just A' ∣ B' ∷ Γ ∷ʳ A ⊢ B}
+  → (h : just (A ⊸ B) ∣ Δ ⊢ C)
+  → scut (⊸r (⊗l f)) h ≗ ⊗l (scut (⊸r f) h)
+scut⊸r⊗l ax = ⊸r⊗l
+scut⊸r⊗l (⊗r h h₁) = ⊗r (scut⊸r⊗l h) refl ∙ ⊗r⊗l
+scut⊸r⊗l (⊸r h) = ⊸r (scut⊸r⊗l h) ∙ ⊸r⊗l
+scut⊸r⊗l (⊸l h h₁) = refl
+
+scut⊸rIl : {Γ Δ : Cxt}{A B C : Fma}
+  → {f : nothing ∣ Γ ∷ʳ A ⊢ B}
+  → (h : just (A ⊸ B) ∣ Δ ⊢ C)
+  → scut (⊸r (Il f)) h ≗ Il (scut (⊸r f) h)
+scut⊸rIl ax = ⊸rIl
+scut⊸rIl (⊗r h h₁) = ⊗r (scut⊸rIl h) refl ∙ ⊗rIl
+scut⊸rIl (⊸r h) = ⊸r (scut⊸rIl h) ∙ ⊸rIl
+scut⊸rIl (⊸l h h₁) = refl
+
+scut⊸rpass : {Γ Δ : Cxt}{A A' B C : Fma}
+  → {f : just A' ∣ Γ ∷ʳ A ⊢ B}
+  → (h : just (A ⊸ B) ∣ Δ ⊢ C)
+  → scut (⊸r (pass f)) h ≗ pass (scut (⊸r f) h)
+scut⊸rpass ax = ⊸rpass
+scut⊸rpass (⊗r h h₁) = ⊗r (scut⊸rpass h) refl ∙ ⊗rpass
+scut⊸rpass (⊸r h) = ⊸r (scut⊸rpass h) ∙ ⊸rpass
+scut⊸rpass (⊸l h h₁) = refl
+
+scut⊗r⊸l : {Γ Γ' Δ Δ' : Cxt}{A A' B B' C : Fma}
+  → {f : nothing ∣ Γ ⊢ A'}{f' : just B' ∣ Γ' ⊢ A}{g : nothing ∣ Δ ⊢ B}
+  → (h : just (A ⊗ B) ∣ Δ' ⊢ C)
+  → scut (⊗r (⊸l f f') g) h ≗ ⊸l f (scut (⊗r f' g) h)
+scut⊗r⊸l ax = ⊗r⊸l
+scut⊗r⊸l (⊗r h h₁) = ⊗r (scut⊗r⊸l h) refl ∙ ⊗r⊸l
+scut⊗r⊸l (⊗l h) = refl
+scut⊗r⊸l {Γ}{Γ'}{Δ} (⊸r {Γ = Δ'} h) = ⊸r (scut⊗r⊸l h) ∙ ⊸r⊸l {Γ}{Γ' ++ Δ ++ Δ'}
+
+scut⊸r⊸l : {Γ Γ' Δ : Cxt}{A A' B B' C : Fma}
+  → {f : nothing ∣ Γ ⊢ A'}{g : just B' ∣ Γ' ∷ʳ A ⊢ B}
+  → (h : just (A ⊸ B) ∣ Δ ⊢ C)
+  → scut (⊸r {Γ = Γ ++ Γ'} (⊸l f g)) h ≗ ⊸l f (scut (⊸r g) h)
+scut⊸r⊸l ax = ⊸r⊸l
+scut⊸r⊸l (⊗r h h₁) = ⊗r (scut⊸r⊸l h) refl ∙ ⊗r⊸l
+scut⊸r⊸l {Γ}{Γ'} (⊸r {Γ = Δ} h) = ⊸r (scut⊸r⊸l h) ∙ ⊸r⊸l {Γ}{Γ' ++ Δ}
+scut⊸r⊸l {Γ}{Γ'} {A = A} (⊸l h h₁)
+  rewrite cases++-inj₂ Γ' Γ [] A = refl
+
+scut⊸r⋆⊸l⋆ : {S : Stp} {Γ Δ : Cxt} {B C : Fma}
+  → (Ξ : List (Σ Cxt λ Δ → Σ Fma λ A → ─ ∣ Δ ⊢ A))
+  → (f : S ∣ Γ ++ List.map (λ x → proj₁ (proj₂ x)) Ξ ⊢ B)
+  → (g : just B ∣ Δ ⊢ C)
+  → scut (⊸r⋆ (List.map (λ x → proj₁ (proj₂ x)) Ξ) f) (⊸l⋆ Ξ g)
+         ≡ scut (ccut⋆ Γ [] Ξ f refl) g
+scut⊸r⋆⊸l⋆ [] f g = refl
+scut⊸r⋆⊸l⋆ {Γ = Γ} ((Δ , A , h) ∷ Ξ) f g =
+  trans (sym (ccutscut-vass Γ {[]} h (⊸r⋆ {Γ = Γ ∷ʳ _} (List.map (λ x → proj₁ (proj₂ x)) Ξ) f) (⊸l⋆ Ξ g) refl) )
+  (trans (cong (λ x → ccut Γ h x refl) (scut⊸r⋆⊸l⋆ {Γ = Γ ∷ʳ _} Ξ f g))
+         (ccutscut-vass Γ h (ccut⋆ (Γ ∷ʳ A) [] Ξ f refl) g refl))
+
+subst-cxt-uip : ∀ {S Γ Γ' A}
+  → (eq eq' : Γ ≡ Γ')
+  → (f : S ∣ Γ ⊢ A) 
+  → subst-cxt eq f ≡ subst-cxt eq' f
+subst-cxt-uip refl refl f = refl
+
+subst-cxt⊗l : ∀ {Γ Γ' A B C}
+  → (eq : Γ ≡ Γ')
+  → (f : just A ∣ B ∷ Γ ⊢ C) 
+  → subst-cxt eq (⊗l f) ≡ ⊗l (subst-cxt (cong (B ∷_) eq) f)
+subst-cxt⊗l refl f = refl
+
+subst-cxt⊗r1 : ∀ {S Γ Γ' Δ A B}
+  → (eq : Γ ≡ Γ')
+  → (f : S ∣ Γ ⊢ A) 
+  → (g : ─ ∣ Δ ⊢ B)
+  → subst-cxt (cong (_++ Δ) eq) (⊗r f g) ≡ ⊗r (subst-cxt eq f) g
+subst-cxt⊗r1 refl f g = refl
+
+subst-cxt⊗r2 : ∀ {S Γ Δ Δ' A B}
+  → (eq : Δ ≡ Δ')
+  → (f : S ∣ Γ ⊢ A) 
+  → (g : ─ ∣ Δ ⊢ B)
+  → subst-cxt (cong (Γ ++_) eq) (⊗r f g) ≡ ⊗r f (subst-cxt eq g)
+subst-cxt⊗r2 refl f g = refl
+
+subst-cxt⊸l1 : ∀ {Γ Γ' Δ A B C}
+  → (eq : Γ ≡ Γ')
+  → (f : ─ ∣ Γ ⊢ A) 
+  → (g : just B ∣ Δ ⊢ C)
+  → subst-cxt (cong (_++ Δ) eq) (⊸l f g) ≡ ⊸l (subst-cxt eq f) g
+subst-cxt⊸l1 refl f g = refl
+
+subst-cxt⊸l2 : ∀ {Γ Δ Δ' A B C}
+  → (eq : Δ ≡ Δ')
+  → (f : ─ ∣ Γ ⊢ A) 
+  → (g : just B ∣ Δ ⊢ C)
+  → subst-cxt (cong (Γ ++_) eq) (⊸l f g) ≡ ⊸l f (subst-cxt eq g)
+subst-cxt⊸l2 refl f g = refl
+
+cong-subst-cxt : ∀ {S Γ Γ' A}
+  → (eq : Γ ≡ Γ')
+  → {f f' : S ∣ Γ ⊢ A} (eq' : f ≗ f')
+  → subst-cxt eq f ≗ subst-cxt eq f'
+cong-subst-cxt refl eq = eq
+
+trans-subst-cxt : ∀ {S Γ Γ' Γ'' A}
+  → (eq : Γ ≡ Γ') (eq' : Γ' ≡ Γ'')
+  → (f : S ∣ Γ ⊢ A)
+  → subst-cxt eq' (subst-cxt eq f) ≡ subst-cxt (trans eq eq') f
+trans-subst-cxt refl refl f = refl  
+
+subst-cxt-ccut2 : ∀ {S Γ} Δ₀ {Δ Δ' A C}
+  → (f : ─ ∣ Γ ⊢ A)  (g : S ∣ Δ₀ ++ A ∷ Δ ⊢ C) (eq : Δ ≡ Δ')
+  → ccut Δ₀ f (subst-cxt (cong (λ x → Δ₀ ++ A ∷ x) eq) g) refl
+       ≡ subst-cxt (cong (λ x → Δ₀ ++ Γ ++ x) eq) (ccut Δ₀ f g refl)
+subst-cxt-ccut2 Δ₀ f g refl = refl
+
+ccut⋆pass : ∀ Γ₀ Γ₁ {A C : Fma}
+  → (Ξ : List (Σ Cxt λ Δ → Σ Fma λ A → ─ ∣ Δ ⊢ A))
+  → (f : just A ∣ Γ₀ ++ List.map (λ x → proj₁ (proj₂ x)) Ξ ++ Γ₁ ⊢ C)
+  → ccut⋆ (A ∷ Γ₀) Γ₁ Ξ (pass f) refl ≡ pass (ccut⋆ Γ₀ Γ₁ Ξ f refl)
+ccut⋆pass Γ₀ Γ₁ [] f = refl
+ccut⋆pass Γ₀ Γ₁ ((Δ , B , g) ∷ Ξ) f =
+  cong (λ x → ccut (_ ∷ Γ₀) g x refl) (ccut⋆pass (Γ₀ ∷ʳ B) Γ₁ Ξ f)
+
+ccut⋆Il : ∀ Γ₀ Γ₁ {C : Fma}
+  → (Ξ : List (Σ Cxt λ Δ → Σ Fma λ A → ─ ∣ Δ ⊢ A))
+  → (f : ─ ∣ Γ₀ ++ List.map (λ x → proj₁ (proj₂ x)) Ξ ++ Γ₁ ⊢ C)
+  → ccut⋆ Γ₀ Γ₁ Ξ (Il f) refl ≡ Il (ccut⋆ Γ₀ Γ₁ Ξ f refl)
+ccut⋆Il Γ₀ Γ₁ [] f = refl
+ccut⋆Il Γ₀ Γ₁ ((Δ , B , g) ∷ Ξ) f =
+  cong (λ x → ccut Γ₀ g x refl) (ccut⋆Il (Γ₀ ∷ʳ B) Γ₁ Ξ f)
+
+ccut⋆⊗l : ∀ Γ₀ Γ₁ {A B C : Fma}
+  → (Ξ : List (Σ Cxt λ Δ → Σ Fma λ A → ─ ∣ Δ ⊢ A))
+  → (f : just A ∣ B ∷ Γ₀ ++ List.map (λ x → proj₁ (proj₂ x)) Ξ ++ Γ₁ ⊢ C)
+  → ccut⋆ Γ₀ Γ₁ Ξ (⊗l f) refl ≡ ⊗l (ccut⋆ (B ∷ Γ₀) Γ₁ Ξ f refl)
+ccut⋆⊗l Γ₀ Γ₁ [] f = refl
+ccut⋆⊗l Γ₀ Γ₁ ((Δ , B , g) ∷ Ξ) f =
+  cong (λ x → ccut Γ₀ g x refl) (ccut⋆⊗l (Γ₀ ∷ʳ B) Γ₁ Ξ f)
+
+ccut⋆⊗r1 : ∀ {S} Γ₀ Γ₁ {Λ} {A B : Fma}
+  → (Ξ : List (Σ Cxt λ Δ → Σ Fma λ A → ─ ∣ Δ ⊢ A))
+  → (f : S ∣ Γ₀ ++ List.map (λ x → proj₁ (proj₂ x)) Ξ ++ Γ₁ ⊢ A)
+  → (g : ─ ∣ Λ ⊢ B)
+  → ccut⋆ Γ₀ (Γ₁ ++ Λ) Ξ (⊗r f g) refl ≡ ⊗r (ccut⋆ Γ₀ Γ₁ Ξ f refl) g
+ccut⋆⊗r1 Γ₀ Γ₁ [] f g = refl
+ccut⋆⊗r1 Γ₀ Γ₁ {Λ} ((Δ , B , h) ∷ Ξ) f g with cong (λ x → ccut Γ₀ h x refl) (ccut⋆⊗r1 (Γ₀ ∷ʳ B) Γ₁ Ξ f g)
+... | ih rewrite cases++-inj₁ Γ₀ (concat (List.map proj₁ Ξ) ++ Γ₁) Λ B = ih
+
+ccut⋆⊗r2 : ∀ {S} Γ₀ Γ₁ {Λ} {A B : Fma}
+  → (Ξ : List (Σ Cxt λ Δ → Σ Fma λ A → ─ ∣ Δ ⊢ A))
+  → (f : S ∣ Λ ⊢ A)
+  → (g : ─ ∣ Γ₀ ++ List.map (λ x → proj₁ (proj₂ x)) Ξ ++ Γ₁ ⊢ B)
+  → ccut⋆ (Λ ++ Γ₀) Γ₁ Ξ (⊗r f g) refl ≡ ⊗r f (ccut⋆ Γ₀ Γ₁ Ξ g refl)
+ccut⋆⊗r2 Γ₀ Γ₁ [] f g = refl
+ccut⋆⊗r2 Γ₀ Γ₁ {Λ} ((Δ , B , h) ∷ Ξ) f g with cong (λ x → ccut (Λ ++ Γ₀) h x refl) (ccut⋆⊗r2 (Γ₀ ∷ʳ B) Γ₁ Ξ f g)
+... | ih rewrite cases++-inj₂ Γ₀ Λ (concat (List.map proj₁ Ξ) ++ Γ₁) B = ih
+
+
+ccut⋆++ : ∀ {S} Γ₀ Γ₁ {C : Fma}
+  → (Ξ Ψ : List (Σ Cxt λ Δ → Σ Fma λ A → ─ ∣ Δ ⊢ A))
+  → (f : S ∣ Γ₀ ++ List.map (λ x → proj₁ (proj₂ x)) Ξ ++ List.map (λ x → proj₁ (proj₂ x)) Ψ ++ Γ₁ ⊢ C)
+  → ccut⋆ Γ₀ Γ₁ (Ξ ++ Ψ) f refl
+          ≡ subst-cxt (cong (λ x → Γ₀ ++ x ++ Γ₁) (sym (concat++ (List.map proj₁ Ξ) (List.map proj₁ Ψ))))
+                      (ccut⋆ Γ₀ (concat (List.map proj₁ Ψ) ++ Γ₁) Ξ (ccut⋆ (Γ₀ ++ List.map (λ x → proj₁ (proj₂ x)) Ξ) Γ₁ Ψ f refl) refl)
+ccut⋆++ Γ₀ Γ₁ [] Ψ f = refl
+ccut⋆++ Γ₀ Γ₁ ((Δ , B , h) ∷ Ξ) Ψ f =
+  trans (cong (λ x → ccut Γ₀ h x refl) (ccut⋆++ (Γ₀ ∷ʳ B) Γ₁ Ξ Ψ f))
+  (trans (cong (λ x → ccut Γ₀ h x refl) (subst-cxt-uip (cong (λ x → Γ₀ ++ B ∷ x ++ Γ₁) eq') (cong (λ x → Γ₀ ++ B ∷ x) eq) _))
+  (trans (subst-cxt-ccut2 Γ₀ h k eq)
+         (subst-cxt-uip (cong (λ x → Γ₀ ++ Δ ++ x) (cong (_++ Γ₁) eq')) _ _)))
+  where
+    k = ccut⋆ (Γ₀ ∷ʳ B) (concat (List.map proj₁ Ψ) ++ Γ₁) Ξ (ccut⋆ (Γ₀ ++ B ∷ List.map (λ x → proj₁ (proj₂ x)) Ξ) Γ₁ Ψ f refl) refl
+    eq = cong (_++ Γ₁) {concat (List.map proj₁ Ξ) ++ concat (List.map proj₁ Ψ)} (sym (concat++ (List.map proj₁ Ξ) (List.map proj₁ Ψ)))
+    eq' = sym (concat++ (List.map proj₁ Ξ) (List.map proj₁ Ψ))
+
+
+ccut⋆⊗r : ∀ {S} Γ₀ Γ₁ {A B : Fma}
+  → (Ξ Ψ : List (Σ Cxt λ Δ → Σ Fma λ A → ─ ∣ Δ ⊢ A))
+  → (f : S ∣ Γ₀ ++ List.map (λ x → proj₁ (proj₂ x)) Ξ ⊢ A)
+  → (g : ─ ∣ List.map (λ x → proj₁ (proj₂ x)) Ψ ++ Γ₁ ⊢ B)
+  → ccut⋆ Γ₀ Γ₁ (Ξ ++ Ψ) (⊗r f g) refl
+          ≡ subst-cxt (cong (λ x → Γ₀ ++ x ++ Γ₁) (sym (concat++ (List.map proj₁ Ξ) (List.map proj₁ Ψ))))
+                      (⊗r (ccut⋆ Γ₀ [] Ξ f refl) (ccut⋆ [] Γ₁ Ψ g refl))
+ccut⋆⊗r Γ₀ Γ₁ Ξ Ψ f g =
+  trans (ccut⋆++ Γ₀ Γ₁ Ξ Ψ (⊗r f g))
+        (cong (subst-cxt (cong (λ x → Γ₀ ++ x ++ Γ₁) (sym (concat++ (List.map proj₁ Ξ) (List.map proj₁ Ψ)))))
+              (trans (cong (λ x → ccut⋆ Γ₀ (concat (List.map proj₁ Ψ) ++ Γ₁) Ξ x refl) (ccut⋆⊗r2 [] Γ₁ Ψ f g))
+                     (ccut⋆⊗r1 Γ₀ [] Ξ f (ccut⋆ [] Γ₁ Ψ g refl))))
+
+
+ccut⋆⊸r : ∀ {S} Γ₀ Γ₁ {A B : Fma}
+  → (Ξ : List (Σ Cxt λ Δ → Σ Fma λ A → ─ ∣ Δ ⊢ A))
+  → (f : S ∣ Γ₀ ++ List.map (λ x → proj₁ (proj₂ x)) Ξ ++ Γ₁ ∷ʳ A ⊢ B)
+  → ccut⋆ Γ₀ Γ₁ Ξ (⊸r {Γ = Γ₀ ++ List.map (λ x → proj₁ (proj₂ x)) Ξ ++ Γ₁} f) refl
+       ≡ ⊸r (ccut⋆ Γ₀ (Γ₁ ∷ʳ A) Ξ f refl)
+ccut⋆⊸r Γ₀ Γ₁ [] f = refl
+ccut⋆⊸r Γ₀ Γ₁ ((Δ , B , g) ∷ Ξ) f = cong (λ x → ccut Γ₀ g x refl) (ccut⋆⊸r (Γ₀ ∷ʳ B) Γ₁ Ξ f)
+
+ccut⋆⊸l1 : ∀ Γ₀ Γ₁ {Λ} {A B C : Fma}
+  → (Ξ : List (Σ Cxt λ Δ → Σ Fma λ A → ─ ∣ Δ ⊢ A))
+  → (f : ─ ∣ Γ₀ ++ List.map (λ x → proj₁ (proj₂ x)) Ξ ++ Γ₁ ⊢ A)
+  → (g : just B ∣ Λ ⊢ C)
+  → ccut⋆ Γ₀ (Γ₁ ++ Λ) Ξ (⊸l f g) refl ≡ ⊸l (ccut⋆ Γ₀ Γ₁ Ξ f refl) g
+ccut⋆⊸l1 Γ₀ Γ₁ [] f g = refl
+ccut⋆⊸l1 Γ₀ Γ₁ {Λ} ((Δ , B , h) ∷ Ξ) f g with cong (λ x → ccut Γ₀ h x refl) (ccut⋆⊸l1 (Γ₀ ∷ʳ B) Γ₁ Ξ f g)
+... | ih rewrite cases++-inj₁ Γ₀ (concat (List.map proj₁ Ξ) ++ Γ₁) Λ B = ih
+
+ccut⋆⊸l2 : ∀ Γ₀ Γ₁ {Λ} {A B C : Fma}
+  → (Ξ : List (Σ Cxt λ Δ → Σ Fma λ A → ─ ∣ Δ ⊢ A))
+  → (f : ─ ∣ Λ ⊢ A)
+  → (g : just B ∣ Γ₀ ++ List.map (λ x → proj₁ (proj₂ x)) Ξ ++ Γ₁ ⊢ C)
+  → ccut⋆ (Λ ++ Γ₀) Γ₁ Ξ (⊸l f g) refl ≡ ⊸l f (ccut⋆ Γ₀ Γ₁ Ξ g refl)
+ccut⋆⊸l2 Γ₀ Γ₁ [] f g = refl
+ccut⋆⊸l2 Γ₀ Γ₁ {Λ} ((Δ , B , h) ∷ Ξ) f g with cong (λ x → ccut (Λ ++ Γ₀) h x refl) (ccut⋆⊸l2 (Γ₀ ∷ʳ B) Γ₁ Ξ f g)
+... | ih rewrite cases++-inj₂ Γ₀ Λ (concat (List.map proj₁ Ξ) ++ Γ₁) B = ih
+
+ccut⋆⊸l : ∀ Γ₀ Γ₁ {A B C : Fma}
+  → (Ξ : List (Σ Cxt λ Δ → Σ Fma λ A → ─ ∣ Δ ⊢ A))
+  → (Ψ : List (Σ Cxt λ Δ → Σ Fma λ A → ─ ∣ Δ ⊢ A))
+  → (f : ─ ∣ Γ₀ ++ List.map (λ x → proj₁ (proj₂ x)) Ξ ⊢ A)
+  → (g : just B ∣ List.map (λ x → proj₁ (proj₂ x)) Ψ ++ Γ₁ ⊢ C)
+  → ccut⋆ Γ₀ Γ₁ (Ξ ++ Ψ) (⊸l f g) refl
+          ≡ subst-cxt (cong (λ x → Γ₀ ++ x ++ Γ₁) (sym (concat++ (List.map proj₁ Ξ) (List.map proj₁ Ψ))))
+                      (⊸l (ccut⋆ Γ₀ [] Ξ f refl) (ccut⋆ [] Γ₁ Ψ g refl))
+ccut⋆⊸l Γ₀ Γ₁ Ξ Ψ f g =
+  trans (ccut⋆++ Γ₀ Γ₁ Ξ Ψ (⊸l f g))
+        (cong (subst-cxt (cong (λ x → Γ₀ ++ x ++ Γ₁) (sym (concat++ (List.map proj₁ Ξ) (List.map proj₁ Ψ)))))
+              (trans (cong (λ x → ccut⋆ Γ₀ (concat (List.map proj₁ Ψ) ++ Γ₁) Ξ x refl) (ccut⋆⊸l2 [] Γ₁ Ψ f g))
+                     (ccut⋆⊸l1 Γ₀ [] Ξ f (ccut⋆ [] Γ₁ Ψ g refl))))
+
 scut-axI : ∀{Γ C} (f : just I ∣ Γ ⊢ C)
   → f ≗ Il (scut Ir f)
 scut-axI ax = axI
@@ -462,62 +694,183 @@ scut-ax⊸ (⊗r f g) = ⊗r (scut-ax⊸ f) refl
 scut-ax⊸ (⊸r f) = ⊸r (scut-ax⊸ f)
 scut-ax⊸ (⊸l f g) = ⊸l (~ ≡-to-≗ (scut-unit f)) refl
 
--------------------------
 
---- cut rules respect equivalence of derivations ≗
 
--- cong-scut1⊗r : {S : Stp} {Γ Γ' Δ : Cxt} {A A' C : Fma} 
---   → {f f' : S ∣ Γ ⊢ A} (eq : f ≗ f')
---   → {h h' : nothing ∣ Γ' ⊢ A'} (eq' : h ≗ h')
---   → (g : just (A ⊗ A') ∣ Δ ⊢ C)
---   → scut (⊗r f h) g ≗ scut (⊗r f' h') g
--- cong-scut1⊸r : {S : Stp} {Γ Δ : Cxt} {A B C : Fma} 
---   → {f f' : S ∣ Γ ∷ʳ A ⊢ B} (eq : f ≗ f')
---   → (g : just (A ⊸ B) ∣ Δ ⊢ C)
---   → scut (⊸r f) g ≗ scut (⊸r f') g
--- cong-scut1 : {S : Stp} {Γ Δ : Cxt} {A C : Fma} 
---   → {f f' : S ∣ Γ ⊢ A} (eq : f ≗ f') (g : just A ∣ Δ ⊢ C)
---   → scut f g ≗ scut f' g
--- cong-scut2 : {S : Stp} {Γ Δ : Cxt} {A C : Fma} 
---   → (f : S ∣ Γ ⊢ A) {g g' : just A ∣ Δ ⊢ C} (eq : g ≗ g')
---   → scut f g ≗ scut f g'
--- cong-ccut1 : {T : Stp} {Γ Δ : Cxt} (Δ₀ : Cxt) {Δ' : Cxt} {A C : Fma}
---   → {f f' : ─ ∣ Γ ⊢ A} (eq : f ≗ f') (g : T ∣ Δ ⊢ C) (r : Δ ≡ Δ₀ ++ A ∷ Δ')
---   → ccut Δ₀ f g r ≗ ccut Δ₀ f' g r
--- cong-ccut2 : {T : Stp} {Γ Δ : Cxt} (Δ₀ : Cxt) {Δ' : Cxt} {A C : Fma}
---   → (f : ─ ∣ Γ ⊢ A) {g g' : T ∣ Δ ⊢ C}  (eq : g ≗ g') (r : Δ ≡ Δ₀ ++ A ∷ Δ')
---   → ccut Δ₀ f g r ≗ ccut Δ₀ f g' r
--- 
--- cong-scut1⊗r eq eq' ax = ⊗r eq eq'
--- cong-scut1⊗r eq eq' (⊗r g g₁) = ⊗r (cong-scut1⊗r eq eq' g) refl
--- cong-scut1⊗r {f' = f'} eq eq' (⊗l g) =
---   cong-scut1 eq _ ∙ cong-scut2 f' (cong-ccut1 [] eq' g refl)
--- cong-scut1⊗r eq eq' (⊸r g) = ⊸r (cong-scut1⊗r eq eq' g)
--- 
--- cong-scut1⊸r eq ax = ⊸r eq
--- cong-scut1⊸r eq (⊗r g g₁) = ⊗r (cong-scut1⊸r eq g) refl
--- cong-scut1⊸r eq (⊸r g) = ⊸r (cong-scut1⊸r eq g)
--- cong-scut1⊸r {Γ = Γ} eq (⊸l {Δ} g g₁) =
---   cong-scut1 {Γ = Γ ++ Δ} (cong-ccut2 Γ g eq refl) g₁
+-- cut rules respect equivalence of derivations ≗
 
--- cong-scut1 refl g = refl
--- cong-scut1 (~ eq) g = ~ cong-scut1 eq g
--- cong-scut1 (eq ∙ eq₁) g = cong-scut1 eq g ∙ cong-scut1 eq₁ g
--- cong-scut1 (pass eq) g = pass (cong-scut1 eq g)
--- cong-scut1 (Il eq) g = Il (cong-scut1 eq g)
--- cong-scut1 (⊗l eq) g = ⊗l (cong-scut1 eq g)
--- cong-scut1 (⊸l eq eq₁) g = ⊸l eq (cong-scut1 eq₁ g)
--- cong-scut1 (⊗r eq eq₁) g = cong-scut1⊗r eq eq₁ g
--- cong-scut1 (⊸r eq) g = cong-scut1⊸r eq g
--- cong-scut1 axI g = scut-axI g
--- cong-scut1 ax⊗ g = scut-ax⊗ g
--- cong-scut1 ax⊸ g = scut-ax⊸ g
--- cong-scut1 ⊗rpass g = scut⊗rpass g
--- cong-scut1 ⊗rIl g = scut⊗rIl g
--- cong-scut1 ⊗r⊗l g = scut⊗r⊗l g
--- cong-scut1 ⊗r⊸l g = {!!}
--- cong-scut1 ⊸rpass g = {!!}
--- cong-scut1 ⊸rIl g = {!!}
--- cong-scut1 ⊸r⊗l g = {!!}
--- cong-scut1 ⊸r⊸l g = {!!}
+cong-scut2Ir : ∀{Γ C} {f g : just I ∣ Γ ⊢ C}
+  → f ≗ g → scut Ir f ≗ scut Ir g
+cong-scut2Ir refl = refl
+cong-scut2Ir (~ eq) = ~ cong-scut2Ir eq
+cong-scut2Ir (eq ∙ eq₁) = cong-scut2Ir eq ∙ cong-scut2Ir eq₁
+cong-scut2Ir (Il eq) = eq
+cong-scut2Ir (⊗r eq eq₁) = ⊗r (cong-scut2Ir eq) eq₁
+cong-scut2Ir (⊸r eq) = ⊸r (cong-scut2Ir eq)
+cong-scut2Ir axI = refl
+cong-scut2Ir ⊗rIl = refl
+cong-scut2Ir ⊸rIl = refl
 
+cong-scut1⊗r : {S : Stp} {Γ Γ' Δ : Cxt} {A A' C : Fma} 
+  → {f f' : S ∣ Γ ⊢ A} (eq : f ≗ f')
+  → {h h' : nothing ∣ Γ' ⊢ A'} (eq' : h ≗ h')
+  → (g : just (A ⊗ A') ∣ Δ ⊢ C)
+  → scut (⊗r f h) g ≗ scut (⊗r f' h') g
+cong-scut1⊸r : {S : Stp} {Γ Δ : Cxt} {A B C : Fma} 
+  → {f f' : S ∣ Γ ∷ʳ A ⊢ B} (eq : f ≗ f')
+  → (g : just (A ⊸ B) ∣ Δ ⊢ C)
+  → scut (⊸r f) g ≗ scut (⊸r f') g
+cong-scut1 : {S : Stp} {Γ Δ : Cxt} {A C : Fma} 
+  → {f f' : S ∣ Γ ⊢ A} (eq : f ≗ f') (g : just A ∣ Δ ⊢ C)
+  → scut f g ≗ scut f' g
+cong-scut2 : {S : Stp} {Γ Δ : Cxt} {A C : Fma} 
+  → (f : S ∣ Γ ⊢ A) {g g' : just A ∣ Δ ⊢ C} (eq : g ≗ g')
+  → scut f g ≗ scut f g'
+cong-ccut1 : {T : Stp} {Γ Δ : Cxt} (Δ₀ : Cxt) {Δ' : Cxt} {A C : Fma}
+  → {f f' : ─ ∣ Γ ⊢ A} (eq : f ≗ f') (g : T ∣ Δ ⊢ C) (r : Δ ≡ Δ₀ ++ A ∷ Δ')
+  → ccut Δ₀ f g r ≗ ccut Δ₀ f' g r
+cong-ccut2 : {T : Stp} {Γ Δ : Cxt} (Δ₀ : Cxt) {Δ' : Cxt} {A C : Fma}
+  → (f : ─ ∣ Γ ⊢ A) {g g' : T ∣ Δ ⊢ C}  (eq : g ≗ g') (r : Δ ≡ Δ₀ ++ A ∷ Δ')
+  → ccut Δ₀ f g r ≗ ccut Δ₀ f g' r
+cong-scut2⊗r : ∀{S Γ Δ Λ A B C}
+  → (f : S ∣ Γ ⊢ A) (f' : ─ ∣ Δ ⊢ B)
+  → {g g' : just (A ⊗ B) ∣ Λ ⊢ C}
+  → g ≗ g' → scut (⊗r f f') g ≗ scut (⊗r f f') g'
+cong-scut2⊸r : ∀{S Γ Δ A B C}
+  → (f : S ∣ Γ ∷ʳ A ⊢ B) 
+  → {g g' : just (A ⊸ B) ∣ Δ ⊢ C}
+  → g ≗ g' → scut (⊸r f) g ≗ scut (⊸r f) g'
+
+cong-scut1⊗r eq eq' ax = ⊗r eq eq'
+cong-scut1⊗r eq eq' (⊗r g g₁) = ⊗r (cong-scut1⊗r eq eq' g) refl
+cong-scut1⊗r {f' = f'} eq eq' (⊗l g) =
+  cong-scut1 eq _ ∙ cong-scut2 f' (cong-ccut1 [] eq' g refl)
+cong-scut1⊗r eq eq' (⊸r g) = ⊸r (cong-scut1⊗r eq eq' g)
+
+cong-scut1⊸r eq ax = ⊸r eq
+cong-scut1⊸r eq (⊗r g g₁) = ⊗r (cong-scut1⊸r eq g) refl
+cong-scut1⊸r eq (⊸r g) = ⊸r (cong-scut1⊸r eq g)
+cong-scut1⊸r {Γ = Γ} eq (⊸l {Δ} g g₁) =
+  cong-scut1 {Γ = Γ ++ Δ} (cong-ccut2 Γ g eq refl) g₁
+
+cong-scut1 refl g = refl
+cong-scut1 (~ eq) g = ~ cong-scut1 eq g
+cong-scut1 (eq ∙ eq₁) g = cong-scut1 eq g ∙ cong-scut1 eq₁ g
+cong-scut1 (pass eq) g = pass (cong-scut1 eq g)
+cong-scut1 (Il eq) g = Il (cong-scut1 eq g)
+cong-scut1 (⊗l eq) g = ⊗l (cong-scut1 eq g)
+cong-scut1 (⊸l eq eq₁) g = ⊸l eq (cong-scut1 eq₁ g)
+cong-scut1 (⊗r eq eq₁) g = cong-scut1⊗r eq eq₁ g
+cong-scut1 (⊸r eq) g = cong-scut1⊸r eq g
+cong-scut1 axI g = scut-axI g
+cong-scut1 ax⊗ g = scut-ax⊗ g
+cong-scut1 ax⊸ g = scut-ax⊸ g
+cong-scut1 ⊗rpass g = scut⊗rpass g
+cong-scut1 ⊗rIl g = scut⊗rIl g
+cong-scut1 ⊗r⊗l g = scut⊗r⊗l g
+cong-scut1 ⊗r⊸l g = scut⊗r⊸l g
+cong-scut1 ⊸rpass g = scut⊸rpass g
+cong-scut1 ⊸rIl g = scut⊸rIl g
+cong-scut1 ⊸r⊗l g = scut⊸r⊗l g
+cong-scut1 ⊸r⊸l g = scut⊸r⊸l g
+
+cong-scut2 ax eq = eq
+cong-scut2 (pass f) eq = pass (cong-scut2 f eq)
+cong-scut2 (Il f) eq = Il (cong-scut2 f eq)
+cong-scut2 (⊗l f) eq = ⊗l (cong-scut2 f eq)
+cong-scut2 (⊸l f f₁) eq = ⊸l refl (cong-scut2 f₁ eq)
+cong-scut2 Ir eq = cong-scut2Ir eq
+cong-scut2 (⊗r f f₁) eq = cong-scut2⊗r f f₁ eq
+cong-scut2 (⊸r f) eq = cong-scut2⊸r f eq
+
+cong-scut2⊗r f f' refl = refl
+cong-scut2⊗r f f' (~ eq) = ~ (cong-scut2⊗r f f' eq)
+cong-scut2⊗r f f' (eq ∙ eq₁) = cong-scut2⊗r f f' eq ∙ cong-scut2⊗r f f' eq₁
+cong-scut2⊗r f f' (⊗l eq) = cong-scut2 f (cong-ccut2 [] f' eq refl)
+cong-scut2⊗r f f' (⊗r eq eq₁) = ⊗r (cong-scut2⊗r f f' eq) eq₁
+cong-scut2⊗r f f' (⊸r eq) = ⊸r (cong-scut2⊗r f f' eq)
+cong-scut2⊗r f f' ax⊗ =
+  ⊗r (~ (≡-to-≗ (scut-unit f))) (~ (≡-to-≗ (scut-unit f')))
+  ∙ (~ scut⊗r f ax (scut f' ax))
+cong-scut2⊗r f f' (⊗r⊗l {f = g} {h}) = ~ scut⊗r f (ccut [] f' g refl) h
+cong-scut2⊗r {Γ = Γ} {Δ} {Λ} f f' (⊸r⊗l {f = g}) =
+  ~ scut⊸r {Γ = Γ}{Δ ++ Λ} f (ccut [] f' g refl)
+
+cong-scut2⊸r f refl = refl
+cong-scut2⊸r f (~ eq) = ~ cong-scut2⊸r f eq
+cong-scut2⊸r f (eq ∙ eq₁) = cong-scut2⊸r f eq ∙ cong-scut2⊸r f eq₁
+cong-scut2⊸r f (⊗r eq eq₁) = ⊗r (cong-scut2⊸r f eq) eq₁
+cong-scut2⊸r f (⊸r eq) = ⊸r (cong-scut2⊸r f eq)
+cong-scut2⊸r {Γ = Γ} f (⊸l {Δ} {f = g}{g' = h'} eq eq₁) =
+  cong-scut2 (ccut Γ g f refl) eq₁
+  ∙ cong-scut1 {Γ = Γ ++ Δ} (cong-ccut1 Γ eq f refl) h'
+cong-scut2⊸r {Γ = Γ} f ax⊸ =
+  ⊸r (~ (≡-to-≗ (trans (scut-unit (ccut Γ (pass ax) f refl))
+                       (ccut-unit Γ f refl))))
+cong-scut2⊸r {Γ = Γ} f (⊗r⊸l {Δ} {f = g}{h}{k}) =
+  ~ scut⊗r {Γ = Γ ++ Δ} (ccut Γ g f refl) h k
+cong-scut2⊸r {Γ = Γ} f (⊸r⊸l {Δ} {f = g}{h}) =
+  ~ (scut⊸r {Γ = Γ ++ Δ} (ccut Γ g f refl) h)
+
+cong-ccut1 Δ₀ eq ax r = ⊥-elim ([]disj∷ Δ₀ r)
+cong-ccut1 [] eq (pass g) refl = cong-scut1 eq g
+cong-ccut1 (_ ∷ Δ₀) eq (pass g) refl = pass (cong-ccut1 Δ₀ eq g refl)
+cong-ccut1 Δ₀ eq Ir r = ⊥-elim ([]disj∷ Δ₀ r)
+cong-ccut1 Δ₀ eq (Il g) r = Il (cong-ccut1 Δ₀ eq g r)
+cong-ccut1 Δ₀ eq (⊗l g) refl = ⊗l (cong-ccut1 (_ ∷ Δ₀) eq g refl)
+cong-ccut1 Δ₀ eq (⊸r g) refl = ⊸r (cong-ccut1 Δ₀ eq g refl)
+cong-ccut1 Δ₀ {Δ'} eq (⊗r {Γ = Γ} {Δ} g g₁) r with cases++ Δ₀ Γ Δ' Δ r
+... | inj₁ (Γ₀ , refl , refl) = ⊗r (cong-ccut1 Δ₀ eq g refl) refl
+... | inj₂ (Γ₀ , refl , refl) = ⊗r refl (cong-ccut1 Γ₀ eq g₁ refl)
+cong-ccut1 Δ₀ {Δ'} eq (⊸l {Γ} {Δ} g g₁) r with cases++ Δ₀ Γ Δ' Δ r
+... | inj₁ (Γ₀ , refl , refl) = ⊸l (cong-ccut1 Δ₀ eq g refl) refl
+... | inj₂ (Γ₀ , refl , refl) = ⊸l refl (cong-ccut1 Γ₀ eq g₁ refl)
+
+cong-ccut2 Δ₀ f refl r = refl
+cong-ccut2 Δ₀ f (~ eq) r = ~ cong-ccut2 Δ₀ f eq r
+cong-ccut2 Δ₀ f (eq ∙ eq₁) r = cong-ccut2 Δ₀ f eq r ∙ cong-ccut2 Δ₀ f eq₁ r
+cong-ccut2 [] f (pass eq) refl = cong-scut2 f eq
+cong-ccut2 (_ ∷ Δ₀) f (pass eq) refl = pass (cong-ccut2 Δ₀ f eq refl)
+cong-ccut2 Δ₀ f (Il eq) r = Il (cong-ccut2 Δ₀ f eq r)
+cong-ccut2 Δ₀ f (⊗l eq) refl = ⊗l (cong-ccut2 (_ ∷ Δ₀) f eq refl)
+cong-ccut2 Δ₀ f (⊸r eq) refl = ⊸r (cong-ccut2 Δ₀ f eq refl)
+cong-ccut2 Δ₀ {Δ'} f (⊗r {Γ = Γ} {Δ} eq eq₁) r with cases++ Δ₀ Γ Δ' Δ r
+... | inj₁ (Γ₀ , refl , refl) = ⊗r (cong-ccut2 Δ₀ f eq refl) eq₁
+... | inj₂ (Γ₀ , refl , refl) = ⊗r eq (cong-ccut2 Γ₀ f eq₁ refl)
+cong-ccut2 Δ₀ {Δ'} f (⊸l {Γ} {Δ} eq eq₁) r with cases++ Δ₀ Γ Δ' Δ r
+... | inj₁ (Γ₀ , refl , refl) = ⊸l (cong-ccut2 Δ₀ f eq refl) eq₁
+... | inj₂ (Γ₀ , refl , refl) = ⊸l eq (cong-ccut2 Γ₀ f eq₁ refl)
+cong-ccut2 Δ₀ f axI r = ⊥-elim ([]disj∷ Δ₀ r)
+cong-ccut2 Δ₀ f ax⊗ r = ⊥-elim ([]disj∷ Δ₀ r)
+cong-ccut2 Δ₀ f ax⊸ r = ⊥-elim ([]disj∷ Δ₀ r)
+cong-ccut2 Δ₀ f ⊗rpass r with cases∷ Δ₀ r
+cong-ccut2 .[] f ⊗rpass refl | inj₁ (refl , refl , refl) = ~ scut⊗r f _ _
+cong-ccut2 .(_ ∷ Δ₀) {Δ'} f (⊗rpass {Γ}{Δ}) r | inj₂ (Δ₀ , p , refl) with cases++ Δ₀ Γ Δ' Δ p
+cong-ccut2 .(_ ∷ Δ₀) {A = A} f (⊗rpass {Δ = Δ}) refl | inj₂ (Δ₀ , p , refl) | inj₁ (Γ₀ , refl , refl)
+  rewrite cases++-inj₁ Δ₀ Γ₀ Δ A = ⊗rpass
+cong-ccut2 .(_ ∷ _ ++ Γ₀) {Δ'} {A = A} f (⊗rpass {Γ}) refl | inj₂ (.(_ ++ Γ₀) , p , refl) | inj₂ (Γ₀ , refl , refl) 
+  rewrite cases++-inj₂ Γ₀ Γ Δ' A = ⊗rpass
+cong-ccut2 [] f ⊸rpass refl = ~ scut⊸r f _
+cong-ccut2 (_ ∷ Δ₀) f ⊸rpass refl = ⊸rpass
+cong-ccut2 Δ₀ f ⊸rIl refl = ⊸rIl
+cong-ccut2 Δ₀ f ⊸r⊗l refl = ⊸r⊗l
+cong-ccut2 Δ₀ {Δ'}{A = A} f (⊗rIl {Γ}{Δ}) r with cases++ Δ₀ Γ Δ' Δ r
+... | inj₁ (Γ₀ , refl , refl) = ⊗rIl
+... | inj₂ (Γ₀ , refl , refl) = ⊗rIl
+cong-ccut2 Δ₀ {Δ'}{A = A} f (⊗r⊗l {Γ}{Δ}) r with cases++ Δ₀ Γ Δ' Δ r
+cong-ccut2 Δ₀ {A = A} f (⊗r⊗l {Δ = Δ}) refl | inj₁ (Γ₀ , refl , refl)
+  rewrite cases++-inj₁ Δ₀ Γ₀ Δ A = ⊗r⊗l
+cong-ccut2 .(_ ++ Γ₀) {Δ'} {A = A} f (⊗r⊗l {Γ}) refl | inj₂ (Γ₀ , refl , refl)
+  rewrite cases++-inj₂ Γ₀ Γ Δ' A = ⊗r⊗l
+cong-ccut2 Δ₀ {Δ'}{A = A} f (⊸r⊸l {Γ}{Δ}) r with cases++ Δ₀ Γ Δ' Δ r
+cong-ccut2 Δ₀ {A = A} f (⊸r⊸l {Δ = Δ} {C = C}) refl | inj₁ (Γ₀ , refl , refl)
+  rewrite cases++-inj₁ Δ₀ Γ₀ (Δ ∷ʳ C) A = ⊸r⊸l
+cong-ccut2 {Γ = Γ₁} .(_ ++ Γ₀) {Δ'} {A = A} f (⊸r⊸l {Γ} {C = C}) refl | inj₂ (Γ₀ , refl , refl)
+  rewrite cases++-inj₂ Γ₀ Γ (Δ' ∷ʳ C) A = ⊸r⊸l {Γ}{Γ₀ ++ Γ₁ ++ Δ'}
+cong-ccut2 Δ₀ {Δ'}{A = A} f (⊗r⊸l {Γ}{Δ}{Λ}) r with cases++ Δ₀ (Γ ++ Δ) Δ' Λ r
+cong-ccut2 _ {Δ'} {A = A} f (⊗r⊸l {Γ}{Δ}) refl | inj₂ (Γ₀ , refl , refl)
+  rewrite cases++-inj₂ (Δ ++ Γ₀) Γ Δ' A | cases++-inj₂ Γ₀ Δ Δ' A = ⊗r⊸l
+... | inj₁ (Γ₀ , p , refl) with cases++ Δ₀ Γ Γ₀ Δ p
+cong-ccut2 Δ₀ {A = A} f (⊗r⊸l {Δ = Δ}{Λ}) refl | inj₁ (_ , refl , refl) | inj₁ (Λ₀ , refl , refl)
+  rewrite cases++-inj₁ Δ₀ Λ₀ Δ A | cases++-inj₁ Δ₀ Λ₀ (Δ ++ Λ) A = ⊗r⊸l
+cong-ccut2 .(_ ++ Λ₀) {A = A} f (⊗r⊸l {Γ}{_}{Λ}) refl | inj₁ (Γ₀ , refl , refl) | inj₂ (Λ₀ , refl , refl)
+  rewrite cases++-inj₂ Λ₀ Γ Γ₀ A | cases++-inj₂ Λ₀ Γ (Γ₀ ++ Λ) A | cases++-inj₁ Λ₀ Γ₀ Λ A = ⊗r⊸l

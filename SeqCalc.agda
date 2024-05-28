@@ -5,7 +5,7 @@ module SeqCalc where
 open import Data.Empty
 open import Data.Maybe renaming (map to mmap)
 open import Data.Sum
-open import Data.List
+open import Data.List as List
 open import Data.Product
 open import Relation.Binary.PropositionalEquality hiding (_≗_)
 open ≡-Reasoning
@@ -238,4 +238,21 @@ cong⊸r⋆ (A ∷ Δ) eq = ⊸r (cong⊸r⋆ Δ eq)
 ⊸r⋆⊸l [] = refl
 ⊸r⋆⊸l (A' ∷ Γ') {Δ}  = ⊸r (⊸r⋆⊸l Γ' {Δ ∷ʳ A'}) ∙ ⊸r⊸l
 
+
+-- Iterated ⊸l
+⊸l⋆ : {Δ : Cxt} {B C : Fma}
+  → (Ξ : List (Σ Cxt λ Δ → Σ Fma λ A → ─ ∣ Δ ⊢ A))
+  → just B ∣ Δ ⊢ C
+  → just (List.map (λ x → proj₁ (proj₂ x)) Ξ ⊸⋆ B) ∣ concat (List.map proj₁ Ξ) ++ Δ ⊢ C
+⊸l⋆ [] g = g
+⊸l⋆ ((Γ , A , f) ∷ Ξ) g = ⊸l {Γ = Γ} f (⊸l⋆ Ξ g)
+
+-- Iterated ccut
+ccut⋆ : ∀{S : Stp} Γ₀ Γ₁ {Γ : Cxt} {C : Fma}
+  → (Ξ : List (Σ Cxt λ Δ → Σ Fma λ A → ─ ∣ Δ ⊢ A))
+  → (f : S ∣ Γ ⊢ C)
+  → (eq : Γ ≡ Γ₀ ++ List.map (λ x → proj₁ (proj₂ x)) Ξ ++ Γ₁)
+  → S ∣ Γ₀ ++ concat (List.map proj₁ Ξ) ++ Γ₁ ⊢ C
+ccut⋆ Γ₀ _ [] f eq = subst-cxt eq f
+ccut⋆ Γ₀ Γ₁ ((Δ , A , g) ∷ Ξ) f refl = ccut Γ₀ g (ccut⋆ (Γ₀ ∷ʳ _) Γ₁ Ξ f refl) refl
 
