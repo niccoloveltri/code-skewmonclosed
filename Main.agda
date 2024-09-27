@@ -18,3 +18,5 @@ import Focusing
 
 -- Interpolation
 import Interpolation
+import VarCondition
+import CutInterpolation

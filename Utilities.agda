@@ -127,6 +127,19 @@ cases++-inj₂ xs xs' ys x | inj₁ (xs₀ , p , q) = ⊥-elim (canc⊥3 [] ys (
 cases++-inj₂ xs xs' ys x | inj₂ (xs₀ , p , q) with ++canc {xs = xs}{xs₀} xs' q
 cases++-inj₂ xs xs' ys x | inj₂ (.xs , refl , refl) | refl = refl
 
+{-
+++?' : {X : Set} → (xs xs' ys ys' : List X) →  
+   xs' ++ ys' ≡ xs ++ ys → 
+        Σ (List X) (λ xs₀ → ys' ≡ xs₀ ++ ys × xs ≡ xs' ++ xs₀) 
+     ⊎ (Σ (List X) (λ xs₀ → xs' ≡ xs ++ xs₀ × ys ≡ xs₀ ++ ys'))
+++?' xs [] ys .(xs ++ ys) refl = inj₁ (xs , refl , refl) 
+++?' [] (x ∷ xs') .((x ∷ xs') ++ ys') ys' refl = inj₂ (x ∷ xs' , refl , refl)
+++?' (x₁ ∷ xs) (x ∷ xs') ys ys' eq with inj∷ eq
+... | (refl , q) with ++?' xs xs' ys ys' q
+... | inj₂ ( xs₀ , refl , refl) = inj₂ (xs₀ , refl , refl)
+... | inj₁ (xs₀ , refl , refl) = inj₁ (xs₀ , refl , refl)
+-}
+
 ++? : {X : Set} → (xs xs' ys ys' : List X) →  
    xs' ++ ys' ≡ xs ++ ys → 
         Σ (List X) (λ xs₀ → ys' ≡ xs₀ ++ ys × xs ≡ xs' ++ xs₀) 

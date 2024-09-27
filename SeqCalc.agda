@@ -137,7 +137,7 @@ data _≗_ : {S  : Stp}{Γ : Cxt}{A : Fma} → S ∣ Γ ⊢ A → S ∣ Γ ⊢ A
   ⊸l : ∀{Γ Δ A B C} {f g : ─ ∣ Γ ⊢ A} {f' g' : just B ∣ Δ ⊢ C}
     → f ≗ g → f' ≗ g' → ⊸l f f' ≗ ⊸l g g'
 
--- -- η-conversions
+-- η-conversions
   axI : ax ≗ Il Ir
   ax⊗ : {A B : Fma} → ax {A ⊗ B} ≗ ⊗l (⊗r ax (pass ax))
   ax⊸ : {A B : Fma} → ax {A ⊸ B} ≗ ⊸r (⊸l (pass ax) ax)
@@ -238,6 +238,34 @@ cong⊸r⋆ (A ∷ Δ) eq = ⊸r (cong⊸r⋆ Δ eq)
 ⊸r⋆⊸l [] = refl
 ⊸r⋆⊸l (A' ∷ Γ') {Δ}  = ⊸r (⊸r⋆⊸l Γ' {Δ ∷ʳ A'}) ∙ ⊸r⊸l
 
+-- Lists of derivations
+data Ders : Cxt → Cxt → Set where
+  [] : Ders [] []
+  der : ∀ Δ D {Δs Ds}
+    → (h : ─ ∣ Δ ⊢ D)
+    → (hs : Ders Δs Ds)
+    → Ders (Δ ++ Δs) (D ∷ Ds)
+
+-- Iterated ccut
+ccut⋆ : ∀{S : Stp} Γ₀ {Γ₁ Γ₁'} Γ₂ {C : Fma}
+  → (hs : Ders Γ₁ Γ₁')
+  → (f : S ∣ Γ₀ ++ Γ₁' ++ Γ₂ ⊢ C)
+  → S ∣ Γ₀ ++ Γ₁ ++ Γ₂ ⊢ C
+ccut⋆ Γ₀ Γ₂ [] f = f
+ccut⋆ Γ₀ Γ₂ (der Δ D h hs) f = ccut Γ₀ h (ccut⋆ (Γ₀ ∷ʳ D) Γ₂ hs f) refl
+
+data _≗s_ : {Δs Ds : Cxt} (hs hs' : Ders Δs Ds) → Set where
+  []≗ : [] ≗s []
+  der≗ : ∀{Δ D Δs Ds}
+    → {h h' : ─ ∣ Δ ⊢ D}
+    → {hs hs' : Ders Δs Ds}
+    → h ≗ h' → hs ≗s hs'
+    → der Δ D h hs ≗s der Δ D h' hs'
+
+_++s_ : ∀{Γ Δ Γ' Δ'} → Ders Γ Δ → Ders Γ' Δ' → Ders (Γ ++ Γ') (Δ ++ Δ')
+[] ++s gs = gs
+der Δ D h fs ++s gs = der Δ D h (fs ++s gs)
+
 
 -- Iterated ⊸l
 ⊸l⋆ : {Δ : Cxt} {B C : Fma}
@@ -247,12 +275,12 @@ cong⊸r⋆ (A ∷ Δ) eq = ⊸r (cong⊸r⋆ Δ eq)
 ⊸l⋆ [] g = g
 ⊸l⋆ ((Γ , A , f) ∷ Ξ) g = ⊸l {Γ = Γ} f (⊸l⋆ Ξ g)
 
--- Iterated ccut
-ccut⋆ : ∀{S : Stp} Γ₀ Γ₁ {Γ : Cxt} {C : Fma}
-  → (Ξ : List (Σ Cxt λ Δ → Σ Fma λ A → ─ ∣ Δ ⊢ A))
-  → (f : S ∣ Γ ⊢ C)
-  → (eq : Γ ≡ Γ₀ ++ List.map (λ x → proj₁ (proj₂ x)) Ξ ++ Γ₁)
-  → S ∣ Γ₀ ++ concat (List.map proj₁ Ξ) ++ Γ₁ ⊢ C
-ccut⋆ Γ₀ _ [] f eq = subst-cxt eq f
-ccut⋆ Γ₀ Γ₁ ((Δ , A , g) ∷ Ξ) f refl = ccut Γ₀ g (ccut⋆ (Γ₀ ∷ʳ _) Γ₁ Ξ f refl) refl
+⊸ls : {Γ Δ Λ : Cxt} {B C : Fma}
+  → Ders Γ Δ
+  → just B ∣ Λ ⊢ C
+  → just (Δ ⊸⋆ B) ∣ Γ ++ Λ ⊢ C
+⊸ls [] g = g
+⊸ls (der Δ D f fs) g = ⊸l {Γ = Δ} f (⊸ls fs g)
+
+
 

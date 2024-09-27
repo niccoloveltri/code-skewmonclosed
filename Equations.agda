@@ -488,18 +488,6 @@ scut⊸r⊸l {Γ}{Γ'} (⊸r {Γ = Δ} h) = ⊸r (scut⊸r⊸l h) ∙ ⊸r⊸l {
 scut⊸r⊸l {Γ}{Γ'} {A = A} (⊸l h h₁)
   rewrite cases++-inj₂ Γ' Γ [] A = refl
 
-scut⊸r⋆⊸l⋆ : {S : Stp} {Γ Δ : Cxt} {B C : Fma}
-  → (Ξ : List (Σ Cxt λ Δ → Σ Fma λ A → ─ ∣ Δ ⊢ A))
-  → (f : S ∣ Γ ++ List.map (λ x → proj₁ (proj₂ x)) Ξ ⊢ B)
-  → (g : just B ∣ Δ ⊢ C)
-  → scut (⊸r⋆ (List.map (λ x → proj₁ (proj₂ x)) Ξ) f) (⊸l⋆ Ξ g)
-         ≡ scut (ccut⋆ Γ [] Ξ f refl) g
-scut⊸r⋆⊸l⋆ [] f g = refl
-scut⊸r⋆⊸l⋆ {Γ = Γ} ((Δ , A , h) ∷ Ξ) f g =
-  trans (sym (ccutscut-vass Γ {[]} h (⊸r⋆ {Γ = Γ ∷ʳ _} (List.map (λ x → proj₁ (proj₂ x)) Ξ) f) (⊸l⋆ Ξ g) refl) )
-  (trans (cong (λ x → ccut Γ h x refl) (scut⊸r⋆⊸l⋆ {Γ = Γ ∷ʳ _} Ξ f g))
-         (ccutscut-vass Γ h (ccut⋆ (Γ ∷ʳ A) [] Ξ f refl) g refl))
-
 subst-cxt-uip : ∀ {S Γ Γ' A}
   → (eq eq' : Γ ≡ Γ')
   → (f : S ∣ Γ ⊢ A) 
@@ -558,120 +546,110 @@ subst-cxt-ccut2 : ∀ {S Γ} Δ₀ {Δ Δ' A C}
        ≡ subst-cxt (cong (λ x → Δ₀ ++ Γ ++ x) eq) (ccut Δ₀ f g refl)
 subst-cxt-ccut2 Δ₀ f g refl = refl
 
-ccut⋆pass : ∀ Γ₀ Γ₁ {A C : Fma}
-  → (Ξ : List (Σ Cxt λ Δ → Σ Fma λ A → ─ ∣ Δ ⊢ A))
-  → (f : just A ∣ Γ₀ ++ List.map (λ x → proj₁ (proj₂ x)) Ξ ++ Γ₁ ⊢ C)
-  → ccut⋆ (A ∷ Γ₀) Γ₁ Ξ (pass f) refl ≡ pass (ccut⋆ Γ₀ Γ₁ Ξ f refl)
+scut⊸r⋆⊸ls : {S : Stp} {Γ Δ Δ' Λ : Cxt} {B C : Fma}
+  → (hs : Ders Δ Λ)
+  → (f : S ∣ Γ ++ Λ ⊢ B)
+  → (g : just B ∣ Δ' ⊢ C)
+  → scut (⊸r⋆ Λ f) (⊸ls hs g) ≡ scut (ccut⋆ Γ [] hs f) g
+scut⊸r⋆⊸ls [] f g = refl
+scut⊸r⋆⊸ls {Γ = Γ} (der Δ D h hs) f g = 
+  trans (sym (ccutscut-vass Γ {[]} h (⊸r⋆ {Γ = Γ ∷ʳ _} _ f) (⊸ls hs g) refl))
+        (trans (cong (λ x → ccut Γ h x refl) (scut⊸r⋆⊸ls {Γ = Γ ∷ʳ _} hs f g))
+               (ccutscut-vass Γ h (ccut⋆ (Γ ∷ʳ D) [] hs f) g refl))
+
+ccut⋆pass : ∀ Γ₀ Γ₁ {Δ Λ A C}
+  → (hs : Ders Δ Λ)
+  → (f : just A ∣ Γ₀ ++ Λ ++ Γ₁ ⊢ C)
+  → ccut⋆ (A ∷ Γ₀) Γ₁ hs (pass f) ≡ pass (ccut⋆ Γ₀ Γ₁ hs f)
 ccut⋆pass Γ₀ Γ₁ [] f = refl
-ccut⋆pass Γ₀ Γ₁ ((Δ , B , g) ∷ Ξ) f =
-  cong (λ x → ccut (_ ∷ Γ₀) g x refl) (ccut⋆pass (Γ₀ ∷ʳ B) Γ₁ Ξ f)
+ccut⋆pass Γ₀ Γ₁ (der Δ B g hs) f =
+  cong (λ x → ccut (_ ∷ Γ₀) g x refl) (ccut⋆pass (Γ₀ ∷ʳ B) Γ₁ hs f)
 
-ccut⋆Il : ∀ Γ₀ Γ₁ {C : Fma}
-  → (Ξ : List (Σ Cxt λ Δ → Σ Fma λ A → ─ ∣ Δ ⊢ A))
-  → (f : ─ ∣ Γ₀ ++ List.map (λ x → proj₁ (proj₂ x)) Ξ ++ Γ₁ ⊢ C)
-  → ccut⋆ Γ₀ Γ₁ Ξ (Il f) refl ≡ Il (ccut⋆ Γ₀ Γ₁ Ξ f refl)
+ccut⋆Il : ∀ Γ₀ Γ₁ {Δ Λ C}
+  → (hs : Ders Δ Λ)
+  → (f : ─ ∣ Γ₀ ++ Λ ++ Γ₁ ⊢ C)
+  → ccut⋆ Γ₀ Γ₁ hs (Il f) ≡ Il (ccut⋆ Γ₀ Γ₁ hs f)
 ccut⋆Il Γ₀ Γ₁ [] f = refl
-ccut⋆Il Γ₀ Γ₁ ((Δ , B , g) ∷ Ξ) f =
-  cong (λ x → ccut Γ₀ g x refl) (ccut⋆Il (Γ₀ ∷ʳ B) Γ₁ Ξ f)
+ccut⋆Il Γ₀ Γ₁ (der Δ B g hs) f =
+  cong (λ x → ccut Γ₀ g x refl) (ccut⋆Il (Γ₀ ∷ʳ B) Γ₁ hs f)
 
-ccut⋆⊗l : ∀ Γ₀ Γ₁ {A B C : Fma}
-  → (Ξ : List (Σ Cxt λ Δ → Σ Fma λ A → ─ ∣ Δ ⊢ A))
-  → (f : just A ∣ B ∷ Γ₀ ++ List.map (λ x → proj₁ (proj₂ x)) Ξ ++ Γ₁ ⊢ C)
-  → ccut⋆ Γ₀ Γ₁ Ξ (⊗l f) refl ≡ ⊗l (ccut⋆ (B ∷ Γ₀) Γ₁ Ξ f refl)
+ccut⋆⊗l : ∀ Γ₀ Γ₁ {Δ Λ A B C}
+  → (hs : Ders Δ Λ)
+  → (f : just A ∣ B ∷ Γ₀ ++ Λ ++ Γ₁ ⊢ C)
+  → ccut⋆ Γ₀ Γ₁ hs (⊗l f) ≡ ⊗l (ccut⋆ (B ∷ Γ₀) Γ₁ hs f)
 ccut⋆⊗l Γ₀ Γ₁ [] f = refl
-ccut⋆⊗l Γ₀ Γ₁ ((Δ , B , g) ∷ Ξ) f =
-  cong (λ x → ccut Γ₀ g x refl) (ccut⋆⊗l (Γ₀ ∷ʳ B) Γ₁ Ξ f)
+ccut⋆⊗l Γ₀ Γ₁ (der Δ B g hs) f =
+  cong (λ x → ccut Γ₀ g x refl) (ccut⋆⊗l (Γ₀ ∷ʳ B) Γ₁ hs f)
 
-ccut⋆⊗r1 : ∀ {S} Γ₀ Γ₁ {Λ} {A B : Fma}
-  → (Ξ : List (Σ Cxt λ Δ → Σ Fma λ A → ─ ∣ Δ ⊢ A))
-  → (f : S ∣ Γ₀ ++ List.map (λ x → proj₁ (proj₂ x)) Ξ ++ Γ₁ ⊢ A)
+ccut⋆⊗r1 : ∀ {S} Γ₀ Γ₁ {Λ Δ Δ'} {A B : Fma}
+  → (hs : Ders Δ Δ')
+  → (f : S ∣ Γ₀ ++ Δ' ++ Γ₁ ⊢ A)
   → (g : ─ ∣ Λ ⊢ B)
-  → ccut⋆ Γ₀ (Γ₁ ++ Λ) Ξ (⊗r f g) refl ≡ ⊗r (ccut⋆ Γ₀ Γ₁ Ξ f refl) g
+  → ccut⋆ Γ₀ (Γ₁ ++ Λ) hs (⊗r f g) ≡ ⊗r (ccut⋆ Γ₀ Γ₁ hs f) g
 ccut⋆⊗r1 Γ₀ Γ₁ [] f g = refl
-ccut⋆⊗r1 Γ₀ Γ₁ {Λ} ((Δ , B , h) ∷ Ξ) f g with cong (λ x → ccut Γ₀ h x refl) (ccut⋆⊗r1 (Γ₀ ∷ʳ B) Γ₁ Ξ f g)
-... | ih rewrite cases++-inj₁ Γ₀ (concat (List.map proj₁ Ξ) ++ Γ₁) Λ B = ih
+ccut⋆⊗r1 Γ₀ Γ₁ {Λ = Λ} (der Δ B {Δs} h hs) f g with cong (λ x → ccut Γ₀ h x refl) (ccut⋆⊗r1 (Γ₀ ∷ʳ B) Γ₁ hs f g)
+... | ih rewrite cases++-inj₁ Γ₀ (Δs ++ Γ₁) Λ B = ih
 
-ccut⋆⊗r2 : ∀ {S} Γ₀ Γ₁ {Λ} {A B : Fma}
-  → (Ξ : List (Σ Cxt λ Δ → Σ Fma λ A → ─ ∣ Δ ⊢ A))
+ccut⋆⊗r2 : ∀ {S} Γ₀ Γ₁ {Δ Δ' Λ} {A B : Fma}
+  → (hs : Ders Δ Δ')
   → (f : S ∣ Λ ⊢ A)
-  → (g : ─ ∣ Γ₀ ++ List.map (λ x → proj₁ (proj₂ x)) Ξ ++ Γ₁ ⊢ B)
-  → ccut⋆ (Λ ++ Γ₀) Γ₁ Ξ (⊗r f g) refl ≡ ⊗r f (ccut⋆ Γ₀ Γ₁ Ξ g refl)
+  → (g : ─ ∣ Γ₀ ++ Δ' ++ Γ₁ ⊢ B)
+  → ccut⋆ (Λ ++ Γ₀) Γ₁ hs (⊗r f g) ≡ ⊗r f (ccut⋆ Γ₀ Γ₁ hs g)
 ccut⋆⊗r2 Γ₀ Γ₁ [] f g = refl
-ccut⋆⊗r2 Γ₀ Γ₁ {Λ} ((Δ , B , h) ∷ Ξ) f g with cong (λ x → ccut (Λ ++ Γ₀) h x refl) (ccut⋆⊗r2 (Γ₀ ∷ʳ B) Γ₁ Ξ f g)
-... | ih rewrite cases++-inj₂ Γ₀ Λ (concat (List.map proj₁ Ξ) ++ Γ₁) B = ih
+ccut⋆⊗r2 Γ₀ Γ₁ {Λ = Λ} (der Δ B {Δs} h hs) f g with cong (λ x → ccut (Λ ++ Γ₀) h x refl) (ccut⋆⊗r2 (Γ₀ ∷ʳ B) Γ₁ hs f g)
+... | ih rewrite cases++-inj₂ Γ₀ Λ (Δs ++ Γ₁) B = ih
 
+ccut⋆++ : ∀ {S} Γ₀ Γ₁ {Δ Λ Δ' Λ' C}
+  → (hs : Ders Δ Λ) (ks : Ders Δ' Λ')
+  → (f : S ∣ Γ₀ ++ Λ ++ Λ' ++ Γ₁ ⊢ C)
+  → ccut⋆ Γ₀ Γ₁ (hs ++s ks) f ≡ ccut⋆ Γ₀ (Δ' ++ Γ₁) hs (ccut⋆ (Γ₀ ++ Λ) Γ₁ ks f)
+ccut⋆++ Γ₀ Γ₁ [] ks f = refl
+ccut⋆++ Γ₀ Γ₁ (der Δ B h hs) ks f = cong (λ x → ccut Γ₀ h x refl) (ccut⋆++ (Γ₀ ∷ʳ B) Γ₁ hs ks f)
 
-ccut⋆++ : ∀ {S} Γ₀ Γ₁ {C : Fma}
-  → (Ξ Ψ : List (Σ Cxt λ Δ → Σ Fma λ A → ─ ∣ Δ ⊢ A))
-  → (f : S ∣ Γ₀ ++ List.map (λ x → proj₁ (proj₂ x)) Ξ ++ List.map (λ x → proj₁ (proj₂ x)) Ψ ++ Γ₁ ⊢ C)
-  → ccut⋆ Γ₀ Γ₁ (Ξ ++ Ψ) f refl
-          ≡ subst-cxt (cong (λ x → Γ₀ ++ x ++ Γ₁) (sym (concat++ (List.map proj₁ Ξ) (List.map proj₁ Ψ))))
-                      (ccut⋆ Γ₀ (concat (List.map proj₁ Ψ) ++ Γ₁) Ξ (ccut⋆ (Γ₀ ++ List.map (λ x → proj₁ (proj₂ x)) Ξ) Γ₁ Ψ f refl) refl)
-ccut⋆++ Γ₀ Γ₁ [] Ψ f = refl
-ccut⋆++ Γ₀ Γ₁ ((Δ , B , h) ∷ Ξ) Ψ f =
-  trans (cong (λ x → ccut Γ₀ h x refl) (ccut⋆++ (Γ₀ ∷ʳ B) Γ₁ Ξ Ψ f))
-  (trans (cong (λ x → ccut Γ₀ h x refl) (subst-cxt-uip (cong (λ x → Γ₀ ++ B ∷ x ++ Γ₁) eq') (cong (λ x → Γ₀ ++ B ∷ x) eq) _))
-  (trans (subst-cxt-ccut2 Γ₀ h k eq)
-         (subst-cxt-uip (cong (λ x → Γ₀ ++ Δ ++ x) (cong (_++ Γ₁) eq')) _ _)))
-  where
-    k = ccut⋆ (Γ₀ ∷ʳ B) (concat (List.map proj₁ Ψ) ++ Γ₁) Ξ (ccut⋆ (Γ₀ ++ B ∷ List.map (λ x → proj₁ (proj₂ x)) Ξ) Γ₁ Ψ f refl) refl
-    eq = cong (_++ Γ₁) {concat (List.map proj₁ Ξ) ++ concat (List.map proj₁ Ψ)} (sym (concat++ (List.map proj₁ Ξ) (List.map proj₁ Ψ)))
-    eq' = sym (concat++ (List.map proj₁ Ξ) (List.map proj₁ Ψ))
+ccut⋆⊗r : ∀ {S} Γ₀ Γ₁ {Δ Λ Δ' Λ' A B}
+  → (hs : Ders Δ Λ) (ks : Ders Δ' Λ')
+  → (f : S ∣ Γ₀ ++ Λ ⊢ A)
+  → (g : ─ ∣ Λ' ++ Γ₁ ⊢ B)
+  → ccut⋆ Γ₀ Γ₁ (hs ++s ks) (⊗r f g) ≡ ⊗r (ccut⋆ Γ₀ [] hs f) (ccut⋆ [] Γ₁ ks g)
+ccut⋆⊗r Γ₀ Γ₁ {Δ' = Δ'} hs ks f g =
+  trans (ccut⋆++ Γ₀ Γ₁ hs ks (⊗r f g))
+        (trans (cong (λ x → ccut⋆ Γ₀ (Δ' ++ Γ₁) hs x) (ccut⋆⊗r2 [] Γ₁ ks f g))
+               (ccut⋆⊗r1 Γ₀ [] hs f (ccut⋆ [] Γ₁ ks g)))  
 
-
-ccut⋆⊗r : ∀ {S} Γ₀ Γ₁ {A B : Fma}
-  → (Ξ Ψ : List (Σ Cxt λ Δ → Σ Fma λ A → ─ ∣ Δ ⊢ A))
-  → (f : S ∣ Γ₀ ++ List.map (λ x → proj₁ (proj₂ x)) Ξ ⊢ A)
-  → (g : ─ ∣ List.map (λ x → proj₁ (proj₂ x)) Ψ ++ Γ₁ ⊢ B)
-  → ccut⋆ Γ₀ Γ₁ (Ξ ++ Ψ) (⊗r f g) refl
-          ≡ subst-cxt (cong (λ x → Γ₀ ++ x ++ Γ₁) (sym (concat++ (List.map proj₁ Ξ) (List.map proj₁ Ψ))))
-                      (⊗r (ccut⋆ Γ₀ [] Ξ f refl) (ccut⋆ [] Γ₁ Ψ g refl))
-ccut⋆⊗r Γ₀ Γ₁ Ξ Ψ f g =
-  trans (ccut⋆++ Γ₀ Γ₁ Ξ Ψ (⊗r f g))
-        (cong (subst-cxt (cong (λ x → Γ₀ ++ x ++ Γ₁) (sym (concat++ (List.map proj₁ Ξ) (List.map proj₁ Ψ)))))
-              (trans (cong (λ x → ccut⋆ Γ₀ (concat (List.map proj₁ Ψ) ++ Γ₁) Ξ x refl) (ccut⋆⊗r2 [] Γ₁ Ψ f g))
-                     (ccut⋆⊗r1 Γ₀ [] Ξ f (ccut⋆ [] Γ₁ Ψ g refl))))
-
-
-ccut⋆⊸r : ∀ {S} Γ₀ Γ₁ {A B : Fma}
-  → (Ξ : List (Σ Cxt λ Δ → Σ Fma λ A → ─ ∣ Δ ⊢ A))
-  → (f : S ∣ Γ₀ ++ List.map (λ x → proj₁ (proj₂ x)) Ξ ++ Γ₁ ∷ʳ A ⊢ B)
-  → ccut⋆ Γ₀ Γ₁ Ξ (⊸r {Γ = Γ₀ ++ List.map (λ x → proj₁ (proj₂ x)) Ξ ++ Γ₁} f) refl
-       ≡ ⊸r (ccut⋆ Γ₀ (Γ₁ ∷ʳ A) Ξ f refl)
+ccut⋆⊸r : ∀ {S} Γ₀ Γ₁ {Δ Λ A B}
+  → (hs : Ders Δ Λ)
+  → (f : S ∣ Γ₀ ++ Λ ++ Γ₁ ∷ʳ A ⊢ B)
+  → ccut⋆ Γ₀ Γ₁ hs (⊸r {Γ = Γ₀ ++ Λ ++ Γ₁} f) ≡ ⊸r (ccut⋆ Γ₀ (Γ₁ ∷ʳ A) hs f)
 ccut⋆⊸r Γ₀ Γ₁ [] f = refl
-ccut⋆⊸r Γ₀ Γ₁ ((Δ , B , g) ∷ Ξ) f = cong (λ x → ccut Γ₀ g x refl) (ccut⋆⊸r (Γ₀ ∷ʳ B) Γ₁ Ξ f)
+ccut⋆⊸r Γ₀ Γ₁ (der Δ B g hs) f = cong (λ x → ccut Γ₀ g x refl) (ccut⋆⊸r (Γ₀ ∷ʳ B) Γ₁ hs f)
 
-ccut⋆⊸l1 : ∀ Γ₀ Γ₁ {Λ} {A B C : Fma}
-  → (Ξ : List (Σ Cxt λ Δ → Σ Fma λ A → ─ ∣ Δ ⊢ A))
-  → (f : ─ ∣ Γ₀ ++ List.map (λ x → proj₁ (proj₂ x)) Ξ ++ Γ₁ ⊢ A)
+ccut⋆⊸l1 : ∀ Γ₀ Γ₁ {Δ Δ' Λ} {A B C : Fma}
+  → (hs : Ders Δ Δ')
+  → (f : ─ ∣ Γ₀ ++ Δ' ++ Γ₁ ⊢ A)
   → (g : just B ∣ Λ ⊢ C)
-  → ccut⋆ Γ₀ (Γ₁ ++ Λ) Ξ (⊸l f g) refl ≡ ⊸l (ccut⋆ Γ₀ Γ₁ Ξ f refl) g
+  → ccut⋆ Γ₀ (Γ₁ ++ Λ) hs (⊸l f g) ≡ ⊸l (ccut⋆ Γ₀ Γ₁ hs f) g
 ccut⋆⊸l1 Γ₀ Γ₁ [] f g = refl
-ccut⋆⊸l1 Γ₀ Γ₁ {Λ} ((Δ , B , h) ∷ Ξ) f g with cong (λ x → ccut Γ₀ h x refl) (ccut⋆⊸l1 (Γ₀ ∷ʳ B) Γ₁ Ξ f g)
-... | ih rewrite cases++-inj₁ Γ₀ (concat (List.map proj₁ Ξ) ++ Γ₁) Λ B = ih
+ccut⋆⊸l1 Γ₀ Γ₁ {Λ = Λ} (der Δ B {Δs = Δs} h hs) f g with cong (λ x → ccut Γ₀ h x refl) (ccut⋆⊸l1 (Γ₀ ∷ʳ B) Γ₁ hs f g)
+... | ih rewrite cases++-inj₁ Γ₀ (Δs ++ Γ₁) Λ B = ih
 
-ccut⋆⊸l2 : ∀ Γ₀ Γ₁ {Λ} {A B C : Fma}
-  → (Ξ : List (Σ Cxt λ Δ → Σ Fma λ A → ─ ∣ Δ ⊢ A))
+ccut⋆⊸l2 : ∀ Γ₀ Γ₁ {Λ} {Δ Δ' A B C}
+  → (hs : Ders Δ Δ')
   → (f : ─ ∣ Λ ⊢ A)
-  → (g : just B ∣ Γ₀ ++ List.map (λ x → proj₁ (proj₂ x)) Ξ ++ Γ₁ ⊢ C)
-  → ccut⋆ (Λ ++ Γ₀) Γ₁ Ξ (⊸l f g) refl ≡ ⊸l f (ccut⋆ Γ₀ Γ₁ Ξ g refl)
+  → (g : just B ∣ Γ₀ ++ Δ' ++ Γ₁ ⊢ C)
+  → ccut⋆ (Λ ++ Γ₀) Γ₁ hs (⊸l f g) ≡ ⊸l f (ccut⋆ Γ₀ Γ₁ hs g)
 ccut⋆⊸l2 Γ₀ Γ₁ [] f g = refl
-ccut⋆⊸l2 Γ₀ Γ₁ {Λ} ((Δ , B , h) ∷ Ξ) f g with cong (λ x → ccut (Λ ++ Γ₀) h x refl) (ccut⋆⊸l2 (Γ₀ ∷ʳ B) Γ₁ Ξ f g)
-... | ih rewrite cases++-inj₂ Γ₀ Λ (concat (List.map proj₁ Ξ) ++ Γ₁) B = ih
+ccut⋆⊸l2 Γ₀ Γ₁ {Λ} (der Δ B {Δs} h hs) f g with cong (λ x → ccut (Λ ++ Γ₀) h x refl) (ccut⋆⊸l2 (Γ₀ ∷ʳ B) Γ₁ hs f g)
+... | ih rewrite cases++-inj₂ Γ₀ Λ (Δs ++ Γ₁) B = ih
 
-ccut⋆⊸l : ∀ Γ₀ Γ₁ {A B C : Fma}
-  → (Ξ : List (Σ Cxt λ Δ → Σ Fma λ A → ─ ∣ Δ ⊢ A))
-  → (Ψ : List (Σ Cxt λ Δ → Σ Fma λ A → ─ ∣ Δ ⊢ A))
-  → (f : ─ ∣ Γ₀ ++ List.map (λ x → proj₁ (proj₂ x)) Ξ ⊢ A)
-  → (g : just B ∣ List.map (λ x → proj₁ (proj₂ x)) Ψ ++ Γ₁ ⊢ C)
-  → ccut⋆ Γ₀ Γ₁ (Ξ ++ Ψ) (⊸l f g) refl
-          ≡ subst-cxt (cong (λ x → Γ₀ ++ x ++ Γ₁) (sym (concat++ (List.map proj₁ Ξ) (List.map proj₁ Ψ))))
-                      (⊸l (ccut⋆ Γ₀ [] Ξ f refl) (ccut⋆ [] Γ₁ Ψ g refl))
-ccut⋆⊸l Γ₀ Γ₁ Ξ Ψ f g =
-  trans (ccut⋆++ Γ₀ Γ₁ Ξ Ψ (⊸l f g))
-        (cong (subst-cxt (cong (λ x → Γ₀ ++ x ++ Γ₁) (sym (concat++ (List.map proj₁ Ξ) (List.map proj₁ Ψ)))))
-              (trans (cong (λ x → ccut⋆ Γ₀ (concat (List.map proj₁ Ψ) ++ Γ₁) Ξ x refl) (ccut⋆⊸l2 [] Γ₁ Ψ f g))
-                     (ccut⋆⊸l1 Γ₀ [] Ξ f (ccut⋆ [] Γ₁ Ψ g refl))))
+ccut⋆⊸l : ∀ Γ₀ Γ₁ {Δ Λ Δ' Λ' A B C}
+  → (hs : Ders Δ Λ) (ks : Ders Δ' Λ')
+  → (f : ─ ∣ Γ₀ ++ Λ ⊢ A)
+  → (g : just B ∣ Λ' ++ Γ₁ ⊢ C)
+  → ccut⋆ Γ₀ Γ₁ (hs ++s ks) (⊸l f g) ≡ ⊸l (ccut⋆ Γ₀ [] hs f) (ccut⋆ [] Γ₁ ks g)
+ccut⋆⊸l Γ₀ Γ₁ {Δ' = Δ'} hs ks f g =
+  trans (ccut⋆++ Γ₀ Γ₁ hs ks (⊸l f g))
+        (trans (cong (λ x → ccut⋆ Γ₀ (Δ' ++ Γ₁) hs x) (ccut⋆⊸l2 [] Γ₁ ks f g))
+               (ccut⋆⊸l1 Γ₀ [] hs f (ccut⋆ [] Γ₁ ks g)))
 
 scut-axI : ∀{Γ C} (f : just I ∣ Γ ⊢ C)
   → f ≗ Il (scut Ir f)

@@ -438,9 +438,6 @@ eqfocus (⊗l p) = cong ⊗l-ri (eqfocus p)
 eqfocus (⊗r p p₁) = cong₂ ⊗r-ri (eqfocus p) (eqfocus p₁)
 eqfocus (⊸r p) = cong ⊸r (eqfocus p)
 eqfocus (⊸l p p₁) = cong₂ ⊸l-ri (eqfocus p) (eqfocus p₁)
-eqfocus axI = refl
-eqfocus ax⊗ = refl
-eqfocus ax⊸ = refl
 eqfocus (⊗rpass {f = f}) = ⊗rpass-ri (focus f) _
 eqfocus (⊗rIl {f = f}) = ⊗rIl-ri (focus f) _
 eqfocus (⊗r⊗l {f = f}) = ⊗r⊗l-ri (focus f) _
@@ -449,6 +446,9 @@ eqfocus ⊸rpass = refl
 eqfocus ⊸rIl = refl
 eqfocus ⊸r⊗l = refl
 eqfocus ⊸r⊸l = refl
+eqfocus axI = refl
+eqfocus ax⊗ = refl
+eqfocus ax⊸ = refl
 
 {- ====================================================== -}
 
@@ -560,12 +560,8 @@ emb⊗r f g = embgen⊗r-ri [] f g
 embax : {A : Fma} → emb-ri (ax-ri {A}) ≗ ax
 embax {` X} = refl
 embax {I} = ~ axI
-embax {A ⊗ B}
-  = ⊗l (emb⊗r ax-ri (pass-ri ax-ri) ∙ ⊗r embax (embpass (ax-ri) ∙ pass embax))
-    ∙ ~ ax⊗
-embax {A ⊸ B}
-  = ⊸r (emb⊸l (pass-ri ax-ri) ax-ri ∙ ⊸l (embpass ax-ri ∙ pass embax) embax)
-    ∙ ~ ax⊸
+embax {A ⊗ B} = ⊗l (emb⊗r ax-ri (pass-ri ax-ri) ∙ ⊗r embax (embpass (ax-ri) ∙ pass embax)) ∙ ~ ax⊗
+embax {A ⊸ B} = ⊸r (emb⊸l (pass-ri ax-ri) ax-ri ∙ ⊸l (embpass ax-ri ∙ pass embax) embax) ∙ ~ ax⊸
 
 embfocus : {S : Stp} {Γ : Cxt} {C : Fma}
            (f : S ∣ Γ ⊢ C) → 
