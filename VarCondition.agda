@@ -501,16 +501,3 @@ svar [] [] Ir refl = v-s []≲ []≲
 -- ccut-cintrp [] [] [] Ir refl = refl
 
 
-module Test (X Y Z W : At) where
-
-  f : just ((` Y ⊗ ` W) ⊸ ` Z) ∣ ` X ⊸ ` Y ∷ ` X ∷ ` W ∷ [] ⊢ ` Z
-  f = ⊸l {_ ∷ _ ∷ _ ∷ []} (pass (⊸l {[ _ ]} (pass ax) (⊗r ax (pass ax)))) ax
-
-  sf : sIntrp (just ((` Y ⊗ ` W) ⊸ ` Z)) [ ` X ⊸ ` Y ] (` X ∷ ` W ∷ []) (` Z)
-  sf = sintrp [ ` X ⊸ ` Y ] (` X ∷ ` W ∷ []) f refl
-
-  D = ` X ⊸ (` W ⊸ ` Z)
-
-  eq : D ≡ sIntrp.D sf
-  eq = refl
-

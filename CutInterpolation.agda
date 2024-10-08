@@ -40,9 +40,12 @@ scut-sintrp Γ₁ Γ₂ (⊸r {A = A}{B} f) refl =
   scut⊸r (sIntrp.g (sintrp Γ₁ (Γ₂ ∷ʳ _) f refl)) _
   ∙ ⊸r (scut-sintrp Γ₁ (Γ₂ ∷ʳ _) f refl)
 scut-sintrp Γ₁ Γ₂ (⊗r {Γ = Γ} {Δ} f g) eq with ++? Γ₁ Γ Γ₂ Δ eq
-scut-sintrp {S} _ Γ₂ (⊗r {Γ = Γ} {A = A}{B} f g) refl | inj₁ (Γ' , refl , refl) =
+scut-sintrp {S} _ Γ₂ (⊗r {Γ = Γ} {A = A}{B} f g) refl | inj₁ ([] , refl , refl) =
   scut⊗r (sIntrp.g (sintrp Γ [] f refl)) (sIntrp.h (sintrp Γ [] f refl)) _
-  ∙ ⊗r (scut-sintrp Γ [] f refl) (scut-sintrp Γ' Γ₂ g refl)
+  ∙ ⊗r (scut-sintrp Γ [] f refl) refl
+scut-sintrp {S} _ Γ₂ (⊗r {Γ = Γ} {A = A}{B} f g) refl | inj₁ (A' ∷ Γ' , refl , refl) = 
+  scut⊗r (sIntrp.g (sintrp Γ [] f refl)) (sIntrp.h (sintrp Γ [] f refl)) _
+  ∙ ⊗r (scut-sintrp Γ [] f refl) (scut-sintrp (A' ∷ Γ') Γ₂ g refl)
 scut-sintrp Γ₁ _ (⊗r {Δ = Δ} {A}{B} f g) refl | inj₂ (A' , Γ' , refl , refl) =
   scut⊗r (sIntrp.g (sintrp Γ₁ (_ ∷ Γ') f refl)) (sIntrp.h (sintrp Γ₁ (_ ∷ Γ') f refl)) g
   ∙ ⊗r (scut-sintrp Γ₁ (A' ∷ Γ') f refl) refl

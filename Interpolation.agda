@@ -71,10 +71,12 @@ sintrp Γ₁ Γ₂ (⊸r {A = A}{B} f) refl =
       (sIntrp.g (sintrp Γ₁ (Γ₂ ∷ʳ _) f refl))
       (⊸r (sIntrp.h (sintrp Γ₁ (Γ₂ ∷ʳ _) f refl)))
 sintrp Γ₁ Γ₂ (⊗r {Γ = Γ} {Δ} f g) eq with ++? Γ₁ Γ Γ₂ Δ eq
-sintrp {S} _ Γ₂ (⊗r {Γ = Γ} {A = A}{B} f g) refl | inj₁ (Γ' , refl , refl) =
-  i-s (sIntrp.D (sintrp Γ [] f refl) ⊗ sIntrp.D (sintrp Γ' Γ₂ g refl))
-      (⊗r (sIntrp.g (sintrp Γ [] f refl)) (sIntrp.g (sintrp Γ' Γ₂ g refl)))
-      (⊗l (⊗r (sIntrp.h (sintrp Γ [] f refl)) (pass (sIntrp.h (sintrp Γ' Γ₂ g refl)))))
+sintrp {S} _ Γ₂ (⊗r {Γ = Γ} {A = A}{B} f g) refl | inj₁ ([] , refl , refl) =
+  i-s (sIntrp.D (sintrp Γ [] f refl)) (sIntrp.g (sintrp Γ [] f refl)) (⊗r (sIntrp.h (sintrp Γ [] f refl)) g)
+sintrp {S} _ Γ₂ (⊗r {Γ = Γ} {A = A}{B} f g) refl | inj₁ (A' ∷ Γ' , refl , refl) = 
+  i-s (sIntrp.D (sintrp Γ [] f refl) ⊗ sIntrp.D (sintrp (A' ∷ Γ') Γ₂ g refl))
+      (⊗r (sIntrp.g (sintrp Γ [] f refl)) (sIntrp.g (sintrp (A' ∷ Γ') Γ₂ g refl)))
+      (⊗l (⊗r (sIntrp.h (sintrp Γ [] f refl)) (pass (sIntrp.h (sintrp (A' ∷ Γ') Γ₂ g refl)))))
 sintrp Γ₁ _ (⊗r {Δ = Δ} {A}{B} f g) eq | inj₂ (A' , Γ' , refl , refl) with sintrp Γ₁ (_ ∷ Γ') f refl
 sintrp Γ₁ _ (⊗r {Δ = Δ} {A}{B} f g) refl | inj₂ (A' , Γ' , refl , refl) | i-s D h k = i-s D h (⊗r k g)
 sintrp Γ₁ Γ₂ (⊸l {Γ} {Δ} f g) eq with ++? Γ Γ₁ Δ Γ₂ (sym eq)
@@ -127,3 +129,93 @@ cintrp (A ∷ Γ₀) Γ₁ Γ₂ (pass f) refl with cintrp Γ₀ Γ₁ Γ₂ f r
 ... | i-c Ds gs h = i-c Ds gs (pass h)
 cintrp [] [] [] Ir refl = i-c [] [] Ir
 
+module Test (X Y Z W : At) where
+
+{-
+  f : just ((` Y ⊗ ` W) ⊸ ` Z) ∣ ` X ⊸ ` Y ∷ ` X ∷ ` W ∷ [] ⊢ ` Z
+  f = ⊸l {_ ∷ _ ∷ _ ∷ []} (pass (⊸l {[ _ ]} (pass ax) (⊗r ax (pass ax)))) ax
+
+  sf : sIntrp (just ((` Y ⊗ ` W) ⊸ ` Z)) [ ` X ⊸ ` Y ] (` X ∷ ` W ∷ []) (` Z)
+  sf = sintrp [ ` X ⊸ ` Y ] (` X ∷ ` W ∷ []) f refl
+
+  D = ` X ⊸ (` W ⊸ ` Z)
+
+  eq : D ≡ sIntrp.D sf
+  eq = refl
+-}
+
+{-
+f : - | Γ₀ , Γ₁ ⊢ A'
+f' : B' | [] ⊢ A
+g : - | Γ₂ ⊢ B
+⊗r (⊸l f f') g ≗ ⊸l f (⊗r f' g) : A' ⊸ B' | Γ₀ , Γ₁ , Γ₂ ⊢ A ⊗ B
+Γ₁ is non-empty
+Partition ⟨ Γ₀ , (Γ₁ , Γ₂) ⟩
+-}
+
+  module Issue1 where --fixed
+
+    f : ─ ∣ ` X ∷  ` Y ∷ [] ⊢ ` X ⊗ ` Y
+    f = pass (⊗r ax (pass ax))
+    
+    f' : just (` Z) ∣ [] ⊢ ` Z
+    f' = ax
+  
+    g : ─ ∣ ` W ∷ [] ⊢ ` W
+    g = pass ax
+  
+    s : sIntrp _ [ ` X ] (` Y ∷ ` W ∷ []) _
+    s = sintrp [ ` X ] (` Y ∷ ` W ∷ []) (⊗r (⊸l f f') g) refl
+  
+    s' : sIntrp _ [ ` X ] (` Y ∷ ` W ∷ []) _
+    s' = sintrp [ ` X ] (` Y ∷ ` W ∷ []) (⊸l f (⊗r f' g)) refl
+  
+    eqD : sIntrp.D s ≡ ` Y ⊸ ` Z
+    eqD = refl
+  
+    eqD' : sIntrp.D s' ≡ ` Y ⊸ ` Z --(` Z ⊗ I)
+    eqD' = refl
+  
+    eqE : sIntrp.D (sintrp [] (` W ∷ []) (⊗r f' g) refl) ≡ ` Z --` Z ⊗ I
+    eqE = refl
+
+  module Issue2 where -- fixed
+
+    f : just (` X) ∣ [] ⊢ ` X
+    f = ax
+
+    g : ─ ∣ [ ` Y ]  ⊢ ` Y
+    g = pass ax
+    
+    c : cIntrp _ [] [ ` X ] [ ` Y ] _
+    c = cintrp [] [ ` X ] [ ` Y ] (⊗r (pass f) g) refl
+
+    c' : cIntrp _ [] [ ` X ] [ ` Y ] _
+    c' = cintrp [] [ ` X ] [ ` Y ] (pass (⊗r f g)) refl
+
+    eqDs : cIntrp.Ds c ≡ [ ` X ]
+    eqDs = refl
+  
+    eqDs' : cIntrp.Ds c' ≡ [ ` X ] --[ ` X ⊗ I ]
+    eqDs' = refl
+
+
+  module Issue3 where
+
+    f : just (` X) ∣ [] ⊢ ` X
+    f = ax
+
+    g : ─ ∣ [ ` Y ] ⊢ ` Y
+    g = pass ax
+
+    c : cIntrp _ [] (` X ∷ ` Y ∷ []) [] _
+    c = cintrp [] (` X ∷ ` Y ∷ []) [] (⊗r (pass f) g) refl
+
+    c' : cIntrp _ [] (` X ∷ ` Y ∷ []) [] _
+    c' = cintrp [] (` X ∷ ` Y ∷ []) [] (pass (⊗r f g)) refl
+
+    eqDs : cIntrp.Ds c ≡ ` X ∷  ` Y ∷ []
+    eqDs = refl
+  
+    eqDs' : cIntrp.Ds c' ≡ ` X ⊗ ` Y ∷ []
+    eqDs' = refl
