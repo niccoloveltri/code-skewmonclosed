@@ -4,7 +4,7 @@ module Utilities where
 
 open import Data.Empty
 open import Data.Maybe
-open import Data.Sum 
+open import Data.Sum renaming ([_,_] to elim⊎) hiding (reduce)
 open import Data.List renaming (map to mapL)
 open import Data.Product 
 open import Relation.Binary.PropositionalEquality
@@ -197,9 +197,7 @@ data _∈_ {A : Set} (a : A) : List A → Set where
 ∈++ : ∀{A a} (xs ys : List A) → a ∈ xs ++ ys → a ∈ xs ⊎ a ∈ ys
 ∈++ [] ys m = inj₂ m
 ∈++ (x ∷ xs) ys here = inj₁ here
-∈++ (x ∷ xs) ys (there m) with ∈++ xs ys m
-... | inj₁ m' = inj₁ (there m')
-... | inj₂ m' = inj₂ m'
+∈++ (x ∷ xs) ys (there m) = elim⊎ (λ x → inj₁ (there x)) inj₂ (∈++ xs ys m)
 
 ∈₁ : ∀{A a} (xs ys : List A) → a ∈ xs → a ∈ xs ++ ys 
 ∈₁ _ _ here = here
