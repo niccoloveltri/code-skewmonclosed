@@ -309,12 +309,16 @@ assocRⁱ = assocR , assocRIsInj
 The variable conditions:
 
 sVar collects variable conditions:
-- an injective map from polarized occurrences of atoms in D to polarized occurrences of atoms in S,Γ
-- an injective map from polarized occurrences of atoms in D to polarized occurrences of atoms in Δ,C
+- an injective map from occurrences of atoms in D to occurrences of atoms in S,Γ
+- an injective map from occurrences of atoms in D to occurrences of atoms in Δ,C
 
 cVar collects variable conditions:
-- an injective map from polarized occurrences of atoms in D₁,...,Dₙ to polarized occurrences of atoms in S,Δ₀,Δ₁,C
-- an injective map from polarized occurrences of atoms in D₁,...,Dₙ to polarized occurrences of atoms in Γ₁,...,Γₙ
+- an injective map from occurrences of atoms in D₁,...,Dₙ to occurrences of atoms in S,Δ₀,Δ₁,C
+- an injective map from occurrences of atoms in D₁,...,Dₙ to occurrences of atoms in Γ₁,...,Γₙ
+
+Notice that we also keep track of atom polarities.
+In `at-g` below, if atom X has polarity p in formula D, then its associated occurrence in S,Γ₁ has same polarity.
+In `at-h` below, if atom X has polarity p in formula D, then its associated occurrence in Γ₂,C has either opposite polarity if it is is Γ₂ or the same polarity if it is in C.
 -}
 
 record sVar S Γ₁ Γ₂ C D : Set where
